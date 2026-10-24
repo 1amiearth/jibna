@@ -3,13 +3,15 @@ import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
+import { artSvg } from '@/assets/svg';
+import { Button } from '@/components/Button';
 import { DrinkChip } from '@/components/DrinkChip';
 import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { challengeProgress, DRINK_TYPES, formatMl, hydrationOf } from '@/lib/hydration';
+import { challengeProgress, DRINK_TYPES, formatMl, fromKey, hydrationOf, TH_DAYS } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -55,6 +57,8 @@ export default function Home() {
   const { challenge, done: challengeDone } = challengeProgress(entries, today.key, today.goal);
   const challengeMet = challengeDone === challenge.target;
   const firstRun = entries.length === 0;
+  // Over-goal state (Waterllama's 'Chill Monday!'): day greeting, how far over, a way back to the celebration.
+  const overGoal = today.count > 0 && today.hydration >= today.goal;
 
   return (
     <Screen style={s.content}>
@@ -63,15 +67,28 @@ export default function Home() {
         right={<View style={s.menu}><IconButton type="settings" onPress={() => router.push('/settings')} /></View>}
       />
       <Pressable style={s.head} onPress={() => router.push('/day-log')} accessibilityRole="button" accessibilityHint="ดูรายการวันนี้">
+        {overGoal && (
+          <View style={s.dayPill}>
+            <Text variant="label" color="mint">{`วัน${TH_DAYS[fromKey(today.key).getDay()]}สดชื่น!`}</Text>
+          </View>
+        )}
         <Text variant="display" color="water" align="center" style={s.amount}>{`${formatMl(today.hydration)} ml`}</Text>
-        <Text variant="caption" color="muted" align="center">
+        <Text variant="caption" color={overGoal ? 'mint' : 'muted'} align="center">
           {today.count === 0
             ? `เริ่มจิบแก้วแรกของวันกันเลย · เป้าหมาย ${formatMl(today.goal)} ml`
-            : `ดื่มแล้ว ${today.percent}% ของเป้าหมาย ${formatMl(today.goal)} ml`}
+            : overGoal
+              ? `ครบเป้าแล้ว! เกินมา ${formatMl(today.hydration - today.goal)} ml · ${today.percent}% ของเป้าหมาย`
+              : `ดื่มแล้ว ${today.percent}% ของเป้าหมาย ${formatMl(today.goal)} ml`}
         </Text>
       </Pressable>
+      {overGoal && <Button label="ฉลองวันนี้" kind="Soft" size="Small" onPress={() => router.push('/goal-reached')} />}
 
       <View style={s.mascot}>
+        {overGoal && (
+          <View style={s.confettiClip} pointerEvents="none">
+            <SvgXml xml={artSvg.confetti} width={width} height={(width * 520) / 390} style={s.confetti} />
+          </View>
+        )}
         <PlayfulMascot percent={today.percent} width={mascotWidth} reaction={reaction} />
       </View>
 
@@ -109,6 +126,9 @@ const s = StyleSheet.create({
   head: { alignItems: 'center', marginTop: -4 },
   amount: { fontSize: 56, lineHeight: 76 },
   mascot: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  confettiClip: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden', alignItems: 'center' },
+  confetti: { position: 'absolute', top: -60 },
+  dayPill: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 2, borderRadius: 12, backgroundColor: '#E3F7F0', marginBottom: -4 },
   streak: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: 20 },
   streakText: { position: 'absolute' },
   menu: { marginRight: 20 },
