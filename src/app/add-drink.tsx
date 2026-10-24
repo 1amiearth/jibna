@@ -155,6 +155,7 @@ export default function AddDrink() {
           setCustomMl(null);
           setSizeIndex(i);
         }}
+        onAmountPress={() => sheets.show('amount')}
       />
       {mixed ? (
         <Text variant="caption" color={negative ? 'berry' : 'mint'} align="center">
@@ -166,7 +167,7 @@ export default function AddDrink() {
         </Text>
       ) : (
         <Text variant="caption" color="muted" align="center">
-          {at == null ? 'ปัดซ้าย–ขวาเพื่อเปลี่ยนขนาด' : `บันทึกเป็นเวลา ${whenLabel(at)}`}
+          {at == null ? 'ปัดซ้าย–ขวาเพื่อเปลี่ยนขนาด · แตะตัวเลขเพื่อพิมพ์เอง' : `บันทึกเป็นเวลา ${whenLabel(at)}`}
         </Text>
       )}
       {negative && (

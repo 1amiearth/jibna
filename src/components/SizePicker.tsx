@@ -32,6 +32,8 @@ type Props = {
   /** Presets to step through instead of the drink's own (mixed liquor: whole-glass totals). */
   sizes?: number[];
   mix?: MixKind;
+  /** Tap on the amount: one-tap custom amount (opens the keypad). */
+  onAmountPress?: () => void;
 };
 
 /**
@@ -39,7 +41,7 @@ type Props = {
  * step between the drink's presets: snaps one step per swipe, the number slides and pops,
  * the liquid level springs, light haptic per step. VoiceOver: adjustable (swipe up/down).
  */
-export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type].sizes, mix }: Props) {
+export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type].sizes, mix, onAmountPress }: Props) {
   const reduce = useReducedMotion();
   const { height, fontScale } = useWindowDimensions();
   const { label } = DRINKS[type];
@@ -115,9 +117,11 @@ export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type]
           <Pressable onPress={() => step(-1)} disabled={prevI == null} hitSlop={12} style={s.side}>
             <Text variant="title" color="chevron">{prevI == null ? '' : sizes[prevI]}</Text>
           </Pressable>
-          <Animated.View style={[s.amount, numberStyle]}>
-            <Text variant="display" align="center">{`${formatMl(ml)} ml`}</Text>
-          </Animated.View>
+          <Pressable onPress={onAmountPress} disabled={!onAmountPress}>
+            <Animated.View style={[s.amount, numberStyle]}>
+              <Text variant="display" align="center">{`${formatMl(ml)} ml`}</Text>
+            </Animated.View>
+          </Pressable>
           <Pressable onPress={() => step(1)} disabled={nextI == null} hitSlop={12} style={s.side}>
             <Text variant="title" color="chevron">{nextI == null ? '' : sizes[nextI]}</Text>
           </Pressable>
