@@ -48,8 +48,8 @@ export default function Settings() {
       <View style={s.group}>
         <Text variant="label" color="muted">อื่น ๆ</Text>
         <RowGroup>
-          <Row label="ช่วยเหลือและติดต่อเรา" chevron={false} />
-          <Row label="นโยบายความเป็นส่วนตัว" chevron={false} />
+          <Row label="ช่วยเหลือ" onPress={() => router.push('/help')} />
+          <Row label="นโยบายความเป็นส่วนตัว" onPress={() => router.push('/privacy')} />
           <Row label="เวอร์ชัน" value={Constants.expoConfig?.version ?? '1.0.0'} chevron={false} divider={false} />
         </RowGroup>
       </View>
