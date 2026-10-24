@@ -50,5 +50,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test src/lib/hydration.test.ts"
   },
+  "engines": {
+    "node": ">=22 <23"
+  },
   "private": true
 }
