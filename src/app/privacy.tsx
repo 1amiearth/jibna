@@ -25,7 +25,7 @@ export default function Privacy() {
           <Text variant="body" color="muted">{body}</Text>
         </View>
       ))}
-      <Text variant="caption" color="muted">ปรับปรุงล่าสุด 24 ตุลาคม 2026</Text>
+      <Text variant="caption" color="muted">ปรับปรุงล่าสุด 24 ตุลาคม 2569</Text>
     </Screen>
   );
 }

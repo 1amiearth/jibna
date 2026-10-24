@@ -7,7 +7,7 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { dayKey, dayTotals, formatMl, fromKey, goalOn, loggedDays, monthGrid, TH_MONTHS, waterDrops } from '@/lib/hydration';
+import { dayKey, dayTotals, formatMl, fromKey, goalOn, loggedDays, monthGrid, TH_MONTHS, thaiYear, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -86,7 +86,7 @@ export default function Calendar() {
         <Pressable onPress={() => shift(-1)} disabled={isFirst} hitSlop={12} accessibilityLabel="เดือนก่อน" accessibilityState={{ disabled: isFirst }}>
           <Text variant="heading" color={isFirst ? 'divider' : 'muted'}>‹</Text>
         </Pressable>
-        <Text variant="title">{`${TH_MONTHS[month.m]} ${month.y}`}</Text>
+        <Text variant="title">{`${TH_MONTHS[month.m]} ${thaiYear(month.y)}`}</Text>
         <Pressable onPress={() => shift(1)} disabled={isCurrent} hitSlop={12} accessibilityLabel="เดือนถัดไป" accessibilityState={{ disabled: isCurrent }}>
           <Text variant="heading" color={isCurrent ? 'divider' : 'muted'}>›</Text>
         </Pressable>

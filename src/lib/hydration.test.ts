@@ -26,6 +26,7 @@ import {
   fitWindow,
   goalOn,
   caffeineOf,
+  thaiYear,
   backupText,
   parseBackup,
   compactEntries,
@@ -311,4 +312,8 @@ test('backup round-trips and rejects anything that is not a valid Jibna backup',
   assert.ok('error' in parseBackup(backupText({ ...data, entries: [{ id: 'x', type: 'Vodka', ml: 30, at: 1 }] }, 3, 0)));
   assert.ok('error' in parseBackup(backupText({ ...data, goal: 99999 }, 3, 0)));
   assert.ok('error' in parseBackup(backupText(data, -1, 0)));
+});
+
+test('Buddhist-era year', () => {
+  assert.equal(thaiYear(2026), 2569);
 });
