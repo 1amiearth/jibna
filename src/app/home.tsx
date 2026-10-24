@@ -27,7 +27,9 @@ function StreakBadge({ count, onPress }: { count: number; onPress: () => void })
 }
 
 export default function Home() {
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
+  // Bigger Dynamic Type takes vertical room from the mascot so nothing overlaps.
+  const mascotWidth = Math.min(300, width - 90) / Math.min(Math.max(fontScale, 1), 1.35) ** 1.5;
   const today = useToday();
   const entries = useJibna((s) => s.entries);
   const lastCelebrated = useJibna((s) => s.lastCelebrated);
@@ -69,7 +71,7 @@ export default function Home() {
       </Pressable>
 
       <View style={s.mascot}>
-        <PlayfulMascot percent={today.percent} width={Math.min(300, width - 90)} reaction={reaction} />
+        <PlayfulMascot percent={today.percent} width={mascotWidth} reaction={reaction} />
       </View>
 
       <View>
@@ -116,6 +118,6 @@ const s = StyleSheet.create({
   coach: { position: 'absolute', left: 44, top: -58, zIndex: 2, alignItems: 'flex-start' },
   bubble: { backgroundColor: colors.ink, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
   tip: { marginLeft: 76, width: 0, height: 0, borderLeftWidth: 9, borderRightWidth: 9, borderTopWidth: 10, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.ink },
-  challenge: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 16, height: 56, borderRadius: 28, paddingLeft: 16, paddingRight: 18, backgroundColor: '#E3F7F0' },
+  challenge: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 16, minHeight: 56, paddingVertical: 8, borderRadius: 28, paddingLeft: 16, paddingRight: 18, backgroundColor: '#E3F7F0' },
   flex: { flex: 1 },
 });

@@ -23,6 +23,19 @@ export const colors = {
 
 export type ColorName = keyof typeof colors;
 
+/**
+ * Darker variants used when a brand colour is the *text* colour, so text reaches WCAG AA 4.5:1
+ * on white, soft and the pale tints (brand fills stay as they are). Pending Figma sign-off.
+ *   water #4DB3E6 2.4:1 → #186E9F 5.6:1 · muted #8A97A6 3.0:1 → #5F6B78 5.4:1
+ *   mint #5CC9A7 2.0:1 → #237A5B 5.2:1   · berry #E8607A 3.3:1 → #BA3753 5.6:1
+ */
+export const textColors: Partial<Record<ColorName, string>> = {
+  water: '#186E9F',
+  muted: '#5F6B78',
+  mint: '#237A5B',
+  berry: '#BA3753',
+};
+
 export const fonts = {
   mitrMedium: 'Mitr_500Medium',
   mitrSemiBold: 'Mitr_600SemiBold',

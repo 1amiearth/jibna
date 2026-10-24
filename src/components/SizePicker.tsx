@@ -41,7 +41,7 @@ type Props = {
  */
 export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type].sizes, mix }: Props) {
   const reduce = useReducedMotion();
-  const { height } = useWindowDimensions();
+  const { height, fontScale } = useWindowDimensions();
   const { label } = DRINKS[type];
   const ml = custom ?? sizes[index];
   const prevI = stepSize(sizes, index, custom, -1);
@@ -50,7 +50,8 @@ export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type]
   const drag = useSharedValue(0);
   const slide = useSharedValue(0);
   const pop = useSharedValue(1);
-  const vessel = Math.min(320, height * 0.42);
+  // Larger Dynamic Type grows the text around it; give that room back so the add button stays on screen.
+  const vessel = Math.min(320, height * 0.42) / Math.min(Math.max(fontScale, 1), 1.35) ** 1.5;
 
   // Any amount change (swipe, side tap, cycle button, new drink) slides the number in from its side.
   const prevMl = useRef(ml);
