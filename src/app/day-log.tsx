@@ -5,6 +5,7 @@ import { SvgXml } from 'react-native-svg';
 
 import { Button } from '@/components/Button';
 import { DrinkArt, DrinkChip } from '@/components/DrinkChip';
+import { MixSelector } from '@/components/MixSelector';
 import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
@@ -30,9 +31,12 @@ import {
   fromKey,
   goalOn,
   hydrationOf,
+  MIXER_MAX_ML,
+  MIXES,
   percentOf,
   type DrinkType,
   type Entry,
+  type MixKind,
 } from '@/lib/hydration';
 import { useNow } from '@/lib/useNow';
 import { useJibna } from '@/store/useJibna';
@@ -40,6 +44,11 @@ import { colors } from '@/theme/tokens';
 
 const MINUS = '<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#FCE4E9"/><path d="M7.5 12h9" stroke="#E8607A" stroke-width="2.4" stroke-linecap="round"/></svg>';
 const STEP = 50;
+/** Back-dated liquor steps by half a shot (30 → 45 → 60) instead of 50 ml. */
+const stepFor = (t: DrinkType) => (t === 'Liquor' ? 15 : STEP);
+
+type Missed = { type: DrinkType; ml: number; at: number; mix: MixKind; mixerMl: number };
+const newMissed = (at: number): Missed => ({ type: 'Water', ml: DRINKS.Water.ml, at, mix: 'neat', mixerMl: 200 });
 
 function defaultMissedTime(key: string) {
   if (key === dayKey(Date.now())) return Date.now() - 60 * 60 * 1000;
@@ -68,7 +77,8 @@ export default function DayLog() {
 
   const [pending, setPending] = useState<Entry | null>(null);
   const [adding, setAdding] = useState(false);
-  const [missed, setMissed] = useState<{ type: DrinkType; ml: number; at: number }>(() => ({ type: 'Water', ml: 350, at: Date.now() }));
+  const [missed, setMissed] = useState<Missed>(() => newMissed(Date.now()));
+  const missedMixed = missed.type === 'Liquor' && missed.mix !== 'neat';
 
   const afterDelete = pending ? dayTotals(entries.filter((e) => e.id !== pending.id), key).hydration : 0;
   const confirmDelete = () => {
@@ -78,11 +88,14 @@ export default function DayLog() {
     if (entry) showToast({ message: `ลบ ${entryLabel(entry)} ${entryAmount(entry)} แล้ว`, undo: { kind: 'delete', entry } });
   };
   const openAdd = () => {
-    setMissed({ type: 'Water', ml: DRINKS.Water.ml, at: defaultMissedTime(key) });
+    setMissed(newMissed(defaultMissedTime(key)));
     setAdding(true);
   };
   const confirmAdd = () => {
-    const entry = addEntry(missed.type, missed.ml, missed.at);
+    // Mixed liquor: `ml` is the liquor, the entry stores the whole glass.
+    const entry = missedMixed
+      ? addEntry(missed.type, missed.ml + missed.mixerMl, missed.at, { kind: missed.mix, liquorMl: missed.ml })
+      : addEntry(missed.type, missed.ml, missed.at);
     setAdding(false);
     showToast({ message: `${addedText(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
   };
@@ -172,22 +185,48 @@ export default function DayLog() {
       <Sheet visible={adding} title="เพิ่มย้อนหลัง" doneLabel="เพิ่ม" onCancel={() => setAdding(false)} onDone={confirmAdd} doneDisabled={isFuture(missed.at)}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.chipsWrap}>
           {DRINK_TYPES.map((t) => (
-            <DrinkChip key={t} type={t} showAdd={false} selected={missed.type === t} onPress={() => setMissed({ ...missed, type: t, ml: DRINKS[t].ml })} />
+            <DrinkChip key={t} type={t} showAdd={false} selected={missed.type === t} onPress={() => setMissed({ ...missed, type: t, ml: DRINKS[t].ml, mix: 'neat' })} />
           ))}
         </ScrollView>
-        <View style={s.amountRow}>
-          <Text variant="bodyStrong" style={s.flex}>ปริมาณ</Text>
-          <Pressable onPress={() => setMissed({ ...missed, ml: Math.max(AMOUNT_MIN, missed.ml - STEP) })} hitSlop={8} accessibilityLabel="ลด 50 ml" style={s.stepBtn}>
-            <Text variant="title" color="water">−</Text>
-          </Pressable>
-          <Text variant="bodyStrong" color="water" style={s.amountValue}>{`${formatMl(missed.ml)} ml`}</Text>
-          <Pressable onPress={() => setMissed({ ...missed, ml: Math.min(DRINKS[missed.type].maxMl, missed.ml + STEP) })} hitSlop={8} accessibilityLabel="เพิ่ม 50 ml" style={s.stepBtn}>
-            <Text variant="title" color="water">+</Text>
-          </Pressable>
-        </View>
+        {missed.type === 'Liquor' && <MixSelector value={missed.mix} onChange={(mix) => setMissed({ ...missed, mix })} />}
+        <AmountStepper
+          label={missed.type === 'Liquor' ? 'เหล้า' : 'ปริมาณ'}
+          value={missed.ml}
+          step={stepFor(missed.type)}
+          min={AMOUNT_MIN}
+          max={DRINKS[missed.type].maxMl}
+          onChange={(ml) => setMissed({ ...missed, ml })}
+        />
+        {missedMixed && (
+          <AmountStepper
+            label={MIXES[missed.mix].mixer}
+            value={missed.mixerMl}
+            step={STEP}
+            min={STEP}
+            max={MIXER_MAX_ML}
+            onChange={(mixerMl) => setMissed({ ...missed, mixerMl })}
+          />
+        )}
         <WhenPicker value={missed.at} onChange={(at) => setMissed({ ...missed, at })} />
       </Sheet>
     </Screen>
+  );
+}
+
+function AmountStepper({ label, value, step, min, max, onChange }: { label: string; value: number; step: number; min: number; max: number; onChange: (n: number) => void }) {
+  return (
+    <View style={s.amountRow} accessible accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ text: `${formatMl(value)} มิลลิลิตร` }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => onChange(e.nativeEvent.actionName === 'increment' ? Math.min(max, value + step) : Math.max(min, value - step))}>
+      <Text variant="bodyStrong" style={s.flex}>{label}</Text>
+      <Pressable onPress={() => onChange(Math.max(min, value - step))} hitSlop={8} accessibilityLabel={`ลด ${step} ml`} style={s.stepBtn}>
+        <Text variant="title" color="water">−</Text>
+      </Pressable>
+      <Text variant="bodyStrong" color="water" style={s.amountValue}>{`${formatMl(value)} ml`}</Text>
+      <Pressable onPress={() => onChange(Math.min(max, value + step))} hitSlop={8} accessibilityLabel={`เพิ่ม ${step} ml`} style={s.stepBtn}>
+        <Text variant="title" color="water">+</Text>
+      </Pressable>
+    </View>
   );
 }
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { DrinkGrid } from '@/components/DrinkGrid';
 import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
+import { MixSelector } from '@/components/MixSelector';
 import { Row, RowGroup } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
@@ -25,7 +26,6 @@ import {
   fillLevel,
   formatTime,
   hydrationOf,
-  MIX_KINDS,
   MIXER_MAX_ML,
   MIXES,
   stepSize,
@@ -125,20 +125,7 @@ export default function AddDrink() {
 
       {isLiquor && (
         <View style={s.mixArea}>
-          <View style={s.segments} accessibilityRole="radiogroup" accessibilityLabel="วิธีดื่ม">
-            {MIX_KINDS.map((k) => (
-              <Pressable
-                key={k}
-                onPress={() => chooseMix(k)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: k === mixKind }}
-                style={[s.segment, k === mixKind && { backgroundColor: VESSELS.Liquor.accent }]}>
-                <Text variant="label" color={k === mixKind ? 'bg' : 'muted'} numberOfLines={1} adjustsFontSizeToFit>
-                  {MIXES[k].label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <MixSelector value={mixKind} onChange={chooseMix} />
           {mixed && (
             <View style={s.shots} accessibilityRole="radiogroup" accessibilityLabel="ปริมาณเหล้า">
               <Text variant="caption" color="muted">เหล้า</Text>
@@ -269,8 +256,6 @@ const s = StyleSheet.create({
   notice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: colors.soft, marginTop: 8 },
   flex: { flex: 1 },
   mixArea: { gap: 10, marginTop: 8 },
-  segments: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 22, backgroundColor: colors.soft },
-  segment: { flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   shots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   shot: { paddingHorizontal: 14, height: 32, borderRadius: 16, justifyContent: 'center', borderWidth: 2, borderColor: colors.soft, backgroundColor: colors.soft },
   shotOn: { borderColor: VESSELS.Liquor.accent, backgroundColor: colors.bg },
