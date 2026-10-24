@@ -10,6 +10,7 @@ import {
   DRINK_TYPES,
   fitWindow,
   type DrinkType,
+  applyUndo,
   migrateState,
   STORE_VERSION,
   withGoal,
@@ -162,9 +163,7 @@ export const useJibna = create<State & Actions>()(
       showToast: (t) => set({ toast: { ...t, id: Date.now() } }),
       undoToast: () => {
         const undo = get().toast?.undo;
-        if (undo?.kind === 'add') get().removeEntry(undo.entry.id);
-        if (undo?.kind === 'delete') get().restoreEntry(undo.entry);
-        set({ toast: null });
+        set((s) => ({ toast: null, ...(undo && { entries: applyUndo(s.entries, undo) }) }));
       },
       hideToast: () => set({ toast: null }),
     }),

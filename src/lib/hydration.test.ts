@@ -37,6 +37,7 @@ import {
   challengeFor,
   challengeProgress,
   migrateEntries,
+  applyUndo,
   migrateState,
   STORE_VERSION,
   waterDrops,
@@ -356,4 +357,13 @@ test('store migration: a v0 save comes up to the current version; newer saves ar
   // From a newer app (downgrade): kept as is, extra fields included.
   const v9 = { ...v3, futureField: 1 };
   assert.equal(migrateState(v9, 9), v9);
+});
+
+test('undo: an add is removed, a delete comes back once', () => {
+  const a: Entry = { id: 'a', type: 'Water', ml: 350, at: at(24, 9) };
+  const b: Entry = { id: 'b', type: 'Coffee', ml: 200, at: at(24, 10) };
+  assert.deepEqual(applyUndo([a, b], { kind: 'add', entry: b }), [a]);
+  const restored = applyUndo([a], { kind: 'delete', entry: b });
+  assert.deepEqual(restored, [a, b]);
+  assert.equal(applyUndo(restored, { kind: 'delete', entry: b }), restored); // double tap: no duplicate
 });

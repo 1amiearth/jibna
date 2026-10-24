@@ -238,6 +238,12 @@ export function parseBackup(text: string): { version: number; data: Record<strin
   return { version: b.version, data: b.data };
 }
 
+/** Undo of the last toast: an add removes that entry, a delete puts it back (once). */
+export function applyUndo(entries: Entry[], undo: { kind: 'add' | 'delete'; entry: Entry }): Entry[] {
+  if (undo.kind === 'add') return entries.filter((e) => e.id !== undo.entry.id);
+  return entries.some((e) => e.id === undo.entry.id) ? entries : [...entries, undo.entry];
+}
+
 export const STORE_VERSION = 3;
 
 /** The persisted fields each migration step touches; the rest pass through untouched. */
