@@ -143,7 +143,7 @@ test('store v0 → v1 marks old liquor entries neat and leaves the rest alone', 
 });
 
 test('reminder plan covers up to a week, stays under the iOS 64 limit, and respects stop-at-goal', () => {
-  const r: Reminders = { enabled: true, intervalMin: 90, start: '08:00', end: '21:00', hotBoost: true, stopAtGoal: true, sleepMode: true };
+  const r: Reminders = { enabled: true, intervalMin: 90, start: '08:00', end: '21:00', hotBoost: true, stopAtGoal: true };
   const now = at(24, 10); // 8 slots/day: 09:30 … 20:00
   const plan = planSchedule(now, r, false, 500);
   assert.equal(plan.length, 7 + 6 * 8); // 11:00…20:00 today + 6 more days

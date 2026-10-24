@@ -9,7 +9,7 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { NotificationPreview } from '@/components/NotificationPreview';
 import { Option } from '@/components/Option';
-import { Row, RowGroup, Toggle } from '@/components/Row';
+import { Row, RowGroup } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
@@ -98,13 +98,13 @@ export default function Reminders() {
         </View>
       )}
 
-      <View style={[s.sleep, off && { opacity: 0.4 }]}>
+      {/* Info only: the reminder window is always inside wake hours, so sleep time is never disturbed. */}
+      <View style={[s.sleep, off && { opacity: 0.4 }]} accessible>
         <Mascot pose="Sleep" width={48} />
         <View style={s.flex}>
           <Text variant="title" color="bg">โหมดฝันดี</Text>
-          <Text variant="label" color="waterPale">{`ไม่รบกวนช่วง ${profile.sleep} – ${profile.wake}`}</Text>
+          <Text variant="label" color="waterPale">{`ไม่เตือนช่วงนอน ${profile.sleep} – ${profile.wake} เสมอ · เปลี่ยนเวลาได้ที่ ข้อมูลร่างกาย`}</Text>
         </View>
-        <Toggle value={r.sleepMode} onChange={(sleepMode) => set({ sleepMode })} disabled={off} />
       </View>
 
       <Sheet

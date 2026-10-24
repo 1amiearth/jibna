@@ -251,7 +251,6 @@ export type Reminders = {
   end: string;
   hotBoost: boolean;
   stopAtGoal: boolean;
-  sleepMode: boolean;
 };
 
 const HOT_EXTRA = ['12:30', '15:30'];
