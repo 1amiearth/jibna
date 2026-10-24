@@ -46,7 +46,7 @@ export const VESSELS: Record<DrinkType, { shape: keyof typeof SHAPES; liquid: st
   ThaiTea: { shape: 'glass', liquid: '#EE9A4D', back: '#F6C08C', accent: '#E07F2C' },
   GreenTea: { shape: 'mug', liquid: '#9CCB6E', back: '#C5E2A6', accent: '#6EAA43' },
   Coffee: { shape: 'mug', liquid: '#8A5A3B', back: '#B5835F', accent: '#8A5A3B' },
-  Milk: { shape: 'bottle', liquid: '#FFFFFF', back: '#EFE8DA', accent: '#6E9CC4' },
+  Milk: { shape: 'bottle', liquid: '#F4EAD5', back: '#E6D9BC', accent: '#6E9CC4' },
   Coconut: { shape: 'glass', liquid: '#DCEBC4', back: '#F0F6E6', accent: '#5CC9A7' },
   Beer: { shape: 'beerMug', liquid: '#F2B33D', back: '#FCE8B2', accent: '#E0A02A' },
   Liquor: { shape: 'shot', liquid: '#C47F35', back: '#DDA866', accent: '#B8722A' },
