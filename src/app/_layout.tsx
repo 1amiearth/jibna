@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
+import { LaunchSplash } from '@/components/LaunchSplash';
 import { ToastHost } from '@/components/Toast';
 import { useReminderSync } from '@/lib/notifications';
 import { useJibna } from '@/store/useJibna';
@@ -23,12 +24,12 @@ export default function RootLayout() {
   const [anuphan] = useAnuphan({ Anuphan_400Regular, Anuphan_500Medium, Anuphan_600SemiBold });
   const hydrated = useStoreHydrated();
   const ready = mitr && anuphan && hydrated;
+  const onboarded = useJibna((s) => s.onboarded);
+  const [splashDone, setSplashDone] = useState(false);
   useReminderSync(hydrated);
 
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
-
+  // Native splash stays up until fonts + persisted store are ready; LaunchSplash then takes
+  // over from an identical first frame and hides it.
   if (!ready) return null;
   return (
     <View style={{ flex: 1 }}>
@@ -40,6 +41,9 @@ export default function RootLayout() {
         <Stack.Screen name="goal-reached" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack>
       <ToastHost />
+      {!splashDone && (
+        <LaunchSplash firstOpen={!onboarded} onShown={() => SplashScreen.hideAsync()} onDone={() => setSplashDone(true)} />
+      )}
     </View>
   );
 }

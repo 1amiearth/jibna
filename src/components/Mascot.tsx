@@ -11,20 +11,30 @@ export function Mascot({ pose, width }: { pose: Pose; width: number }) {
 }
 
 // Body outline of "Hydration Mascot" (Figma 6:92) in its 324×405 frame.
-const BODY = 'M 125.25 0 C 119.85 43.2 219.75 121.5 229.2 210.6 C 238.65 297 181.95 334.8 114.45 334.8 C 46.95 334.8 -8.4 297 1.05 213.3 C 9.15 132.3 100.95 78.3 125.25 0 Z';
-const BODY_X = 47.545;
-const BODY_TOP = 18.9;
-const BODY_H = 334.8;
+export const BODY = 'M 125.25 0 C 119.85 43.2 219.75 121.5 229.2 210.6 C 238.65 297 181.95 334.8 114.45 334.8 C 46.95 334.8 -8.4 297 1.05 213.3 C 9.15 132.3 100.95 78.3 125.25 0 Z';
+export const BODY_X = 47.545;
+export const BODY_TOP = 18.9;
+export const BODY_H = 334.8;
+export const WATER_BACK = '#8CC8F0';
+export const WATER_FRONT = '#4DB3E6';
 
-function wave(y: number, amp: number) {
+/** Wavy water surface at height `y`, filled down to the frame bottom. Worklet: also used by the launch splash. */
+export function wavePath(y: number, amp: number) {
+  'worklet';
   return `M0 ${y} C 81 ${y - amp} 162 ${y + amp} 243 ${y} S 324 ${y - amp} 405 ${y} V 405 H 0 Z`;
+}
+
+/** Water surface y for a fill level 0–1. */
+export function waterY(level: number) {
+  'worklet';
+  return BODY_TOP + BODY_H * (1 - level);
 }
 
 /** Home mascot whose water level follows `percent` (0–100+). Layers: base → water (clipped to body) → face. */
 export function HydrationMascot({ percent, width }: { percent: number; width: number }) {
   const height = (width * 405) / 324;
   const p = Math.min(1, Math.max(0, percent / 100));
-  const y = BODY_TOP + BODY_H * (1 - p);
+  const y = waterY(p);
   return (
     <View style={{ width, height }} accessibilityLabel={`น้องจิบ ดื่มแล้ว ${Math.round(percent)}%`}>
       <SvgXml xml={artSvg.hydrationBase} width={width} height={height} style={StyleSheet.absoluteFill} />
@@ -36,8 +46,8 @@ export function HydrationMascot({ percent, width }: { percent: number; width: nu
             </ClipPath>
           </Defs>
           <G clipPath="url(#body)">
-            <Path d={wave(y - 13, 10)} fill="#8CC8F0" />
-            <Path d={wave(y, -10)} fill="#4DB3E6" />
+            <Path d={wavePath(y - 13, 10)} fill={WATER_BACK} />
+            <Path d={wavePath(y, -10)} fill={WATER_FRONT} />
           </G>
         </Svg>
       )}
