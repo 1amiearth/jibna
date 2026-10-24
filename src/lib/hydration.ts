@@ -51,7 +51,8 @@ export const alcoholFactor = (abv: number, waterShare: number) => waterShare - M
  */
 export const DRINKS: Record<DrinkType, Drink> = {
   Water: { label: 'น้ำเปล่า', ml: 350, factor: 1, sizes: [250, 350, 500], maxMl: 2000 },
-  ThaiTea: { label: 'ชาไทย', ml: 250, factor: 0.8, sizes: [200, 250, 350], maxMl: 1000 },
+  // Caffeine: brewed black tea ≈ 0.2 mg/ml, diluted by milk in ชาไทย; green tea ≈ 0.1; coffee ≈ 0.475.
+  ThaiTea: { label: 'ชาไทย', ml: 250, factor: 0.8, sizes: [200, 250, 350], maxMl: 1000, caffeineMgPerMl: 0.16 },
   GreenTea: { label: 'ชาเขียว', ml: 300, factor: 0.95, sizes: [200, 300, 400], maxMl: 1000, caffeineMgPerMl: 0.1 },
   Coffee: { label: 'กาแฟ', ml: 200, factor: 0.8, sizes: [150, 200, 350], maxMl: 1000, caffeineMgPerMl: 0.475 },
   Milk: { label: 'นม', ml: 200, factor: 0.9, sizes: [200, 250, 400], maxMl: 1000 },

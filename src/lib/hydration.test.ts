@@ -22,6 +22,7 @@ import {
   entryLabel,
   fitWindow,
   goalOn,
+  caffeineOf,
   migrateEntries,
   waterDrops,
   withGoal,
@@ -48,7 +49,8 @@ test('goal: 55 kg, mid activity, very hot = 2,300 ml', () => {
 
 test('Figma day log totals', () => {
   const t = dayTotals(figmaDay, '2026-10-24');
-  assert.deepEqual(t, { hydration: 1460, total: 1550, caffeine: 95, count: 5 });
+  // Figma showed 95 mg caffeine (coffee only); ชาไทย 250 ml now adds its 40 mg.
+  assert.deepEqual(t, { hydration: 1460, total: 1550, caffeine: 135, count: 5 });
   const afterDelete = dayTotals(figmaDay.filter((e) => e.type !== 'Coffee'), '2026-10-24');
   assert.equal(afterDelete.hydration, 1300);
 });
@@ -193,4 +195,10 @@ test('reminder window is pulled back inside wake hours when wake/sleep change', 
   assert.deepEqual(fitWindow(w, '10:00', '02:00'), { start: '11:00', end: '23:30' }); // sleep after midnight
   assert.deepEqual(fitWindow(w, '23:30', '08:00'), { start: '00:30', end: '06:00' }); // night shift
   assert.deepEqual(fitWindow({ start: '08:00', end: '22:30' }, '07:00', '22:00'), { start: '08:00', end: '20:00' });
+});
+
+test('caffeine per serving', () => {
+  assert.equal(caffeineOf({ type: 'ThaiTea', ml: 250 }), 40);
+  assert.equal(caffeineOf({ type: 'Coffee', ml: 200 }), 95);
+  assert.equal(caffeineOf({ type: 'Water', ml: 350 }), 0);
 });
