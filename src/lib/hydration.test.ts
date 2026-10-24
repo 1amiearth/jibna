@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import {
   calcGoal,
   dayKey,
+  entriesOn,
   dayTotals,
   DEFAULT_PROFILE,
   fillLevel,
@@ -253,4 +254,20 @@ test('drinks list: order is repaired, hidden drinks leave Home, never empty', ()
   assert.deepEqual(homeDrinks([], all), ['Water']);
   assert.deepEqual(moveDrink(['Water', 'Coffee', 'Beer'], 'Beer', -1), ['Water', 'Beer', 'Coffee']);
   assert.deepEqual(moveDrink(['Water', 'Coffee'], 'Water', -1), ['Water', 'Coffee']);
+});
+
+test('day index: cached per entries array, fresh after a change, fast on a year of data', () => {
+  const day: Entry[] = [{ id: 'a', type: 'Water', ml: 350, at: at(24, 9) }];
+  assert.equal(dayTotals(day, '2026-10-24').hydration, 350);
+  const more = [...day, { id: 'b', type: 'Water', ml: 250, at: at(24, 11) } as Entry];
+  assert.equal(dayTotals(more, '2026-10-24').hydration, 600);
+  assert.equal(dayTotals(day, '2026-10-24').hydration, 350);
+  assert.deepEqual(entriesOn(more, '2026-10-24').map((e) => e.id), ['b', 'a']);
+  // 365 days × 10 entries: a month of calendar cells plus the streak stay well under a frame budget.
+  const year: Entry[] = [];
+  for (let d = 0; d < 365; d++) for (let h = 8; h < 18; h++) year.push({ id: `${d}-${h}`, type: 'Water', ml: 250, at: new Date(2026, 0, 1 + d, h).getTime() });
+  const t0 = performance.now();
+  for (let d = 1; d <= 31; d++) dayTotals(year, dayKey(new Date(2026, 9, d)));
+  assert.equal(streak(year, () => 2300, new Date(2026, 11, 31, 20).getTime()), 365);
+  assert.ok(performance.now() - t0 < 200, `took ${performance.now() - t0} ms`);
 });

@@ -185,22 +185,57 @@ export function dayKey(t: number | Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function entriesOn(entries: Entry[], key: string): Entry[] {
-  return entries.filter((e) => dayKey(e.at) === key).sort((a, b) => b.at - a.at);
+type DayIndex = { byDay: Map<string, Entry[]>; totals: Map<string, DayTotals> };
+// The store replaces `entries` on every change, so the array identity is a safe cache key:
+// one O(n) pass per change instead of one per dayTotals call (Calendar ×31, streak ×days, …).
+const indexCache = new WeakMap<readonly Entry[], DayIndex>();
+
+function dayIndex(entries: readonly Entry[]): DayIndex {
+  let index = indexCache.get(entries);
+  if (!index) {
+    const byDay = new Map<string, Entry[]>();
+    for (const e of entries) {
+      const k = dayKey(e.at);
+      const day = byDay.get(k);
+      if (day) day.push(e);
+      else byDay.set(k, [e]);
+    }
+    for (const day of byDay.values()) day.sort((a, b) => b.at - a.at);
+    index = { byDay, totals: new Map() };
+    indexCache.set(entries, index);
+  }
+  return index;
+}
+
+const NO_ENTRIES: Entry[] = [];
+
+/** That day's entries, newest first. Shared from a cache: don't mutate the result. */
+export function entriesOn(entries: readonly Entry[], key: string): Entry[] {
+  return dayIndex(entries).byDay.get(key) ?? NO_ENTRIES;
+}
+
+/** Local day keys that have at least one entry. */
+export function loggedDays(entries: readonly Entry[]): string[] {
+  return [...dayIndex(entries).byDay.keys()];
 }
 
 export type DayTotals = { hydration: number; total: number; caffeine: number; count: number };
 
 /** Hydration never drops below 0 for a day, however much alcohol is logged. */
-export function dayTotals(entries: Entry[], key: string): DayTotals {
-  const day = entriesOn(entries, key);
-  const hydration = day.reduce((s, e) => s + hydrationOf(e), 0);
-  return {
-    hydration: Math.max(0, Math.round(hydration)),
-    total: day.reduce((s, e) => s + e.ml, 0),
-    caffeine: day.reduce((s, e) => s + caffeineOf(e), 0),
-    count: day.length,
-  };
+export function dayTotals(entries: readonly Entry[], key: string): DayTotals {
+  const index = dayIndex(entries);
+  let t = index.totals.get(key);
+  if (!t) {
+    const day = index.byDay.get(key) ?? NO_ENTRIES;
+    t = {
+      hydration: Math.max(0, Math.round(day.reduce((s, e) => s + hydrationOf(e), 0))),
+      total: day.reduce((s, e) => s + e.ml, 0),
+      caffeine: day.reduce((s, e) => s + caffeineOf(e), 0),
+      count: day.length,
+    };
+    index.totals.set(key, t);
+  }
+  return t;
 }
 
 export function percentOf(hydration: number, goal: number): number {
@@ -279,12 +314,11 @@ export const DROPS_PER_GOAL_DAY = 20;
 
 /**
  * หยดน้ำสะสม: DROPS_PER_GOAL_DAY for every day that met its goal. Derived from the log, so
- * deleting entries can take drops back. ponytail: O(days × entries); cache per day if slow.
+ * deleting entries can take drops back.
  */
 export function waterDrops(entries: Entry[], goalFor: (key: string) => number): number {
-  const days = new Set(entries.map((e) => dayKey(e.at)));
   let met = 0;
-  for (const k of days) if (dayTotals(entries, k).hydration >= goalFor(k)) met++;
+  for (const k of loggedDays(entries)) if (dayTotals(entries, k).hydration >= goalFor(k)) met++;
   return met * DROPS_PER_GOAL_DAY;
 }
 
