@@ -8,6 +8,7 @@ import {
   dayTotals,
   DEFAULT_PROFILE,
   formatMl,
+  mascotMood,
   hydrationOf,
   monthGrid,
   reminderTimes,
@@ -72,4 +73,8 @@ test('helpers', () => {
   assert.equal(dayKey(at(24, 23)), '2026-10-24');
   const oct = monthGrid(2026, 9);
   assert.deepEqual(oct[0].slice(0, 4), [null, null, null, '2026-10-01']); // 1 Oct 2026 is Thursday
+});
+
+test('mascot mood thresholds', () => {
+  assert.deepEqual([0, 24, 25, 99, 100, 119, 120, 180].map(mascotMood), ['thirsty', 'thirsty', 'happy', 'happy', 'celebrate', 'celebrate', 'full', 'full']);
 });

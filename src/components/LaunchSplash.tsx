@@ -13,7 +13,7 @@ import Svg, { ClipPath, Defs, G, Path, SvgXml } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { artSvg } from '@/assets/svg';
-import { BODY, BODY_TOP, BODY_X, WATER_BACK, WATER_FRONT, waterY, wavePath } from '@/components/Mascot';
+import { BODY, BODY_TIP_X, BODY_TOP, WATER_BACK, WATER_FRONT, waterY, wavePath } from '@/components/Mascot';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/tokens';
 
@@ -24,7 +24,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const W = 200;
 const H = (W * 405) / 324;
 const DROP = '<svg width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C14 0 28 17 28 24a14 12 0 0 1-28 0C0 17 14 0 14 0Z" fill="#4DB3E6"/></svg>';
-const TIP_X = ((BODY_X + 125.25) / 324) * W; // top of the drop-shaped body
+const TIP_X = (BODY_TIP_X / 324) * W; // top of the drop-shaped body
 const TIP_Y = (BODY_TOP / 405) * H;
 
 type Timing = { drop: number; fillDelay: number; fill: number; textDelay: number; hold: number; exit: number };
@@ -99,7 +99,7 @@ export function LaunchSplash({ firstOpen, onShown, onDone }: Props) {
           <Svg width={W} height={H} viewBox="0 0 324 405">
             <Defs>
               <ClipPath id="splash-body">
-                <Path d={BODY} transform={`translate(${BODY_X} ${BODY_TOP})`} />
+                <Path d={BODY} />
               </ClipPath>
             </Defs>
             <G clipPath="url(#splash-body)">

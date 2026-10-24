@@ -162,6 +162,16 @@ export function reminderTimes(intervalMin: number, start: string, end: string): 
   return out;
 }
 
+export type MascotMood = 'thirsty' | 'happy' | 'celebrate' | 'full';
+
+/** Home mascot mood from today's progress: thirsty < 25% ≤ happy < 100% ≤ celebrate < 120% ≤ full. */
+export function mascotMood(percent: number): MascotMood {
+  if (percent >= 120) return 'full';
+  if (percent >= 100) return 'celebrate';
+  if (percent < 25) return 'thirsty';
+  return 'happy';
+}
+
 export function formatMl(n: number): string {
   const sign = n < 0 ? '−' : '';
   return sign + String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');

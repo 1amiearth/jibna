@@ -5,7 +5,8 @@ import { SvgXml } from 'react-native-svg';
 
 import { DrinkChip } from '@/components/DrinkChip';
 import { IconButton } from '@/components/IconButton';
-import { HydrationMascot, Mascot } from '@/components/Mascot';
+import { Mascot } from '@/components/Mascot';
+import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { DRINK_TYPES, DRINKS, entriesOn, formatMl } from '@/lib/hydration';
@@ -30,6 +31,9 @@ export default function Home() {
   const today = useToday();
   const entries = useJibna((s) => s.entries);
   const lastCelebrated = useJibna((s) => s.lastCelebrated);
+  const toast = useJibna((s) => s.toast);
+  const added = toast?.undo?.kind === 'add' ? toast.undo.entry : null;
+  const reaction = toast && added ? { id: toast.id, alcohol: DRINKS[added.type].factor < 0 } : null;
   const markCelebrated = useJibna((s) => s.markCelebrated);
 
   // Goal Reached modal once per day, when Home regains focus after an add.
@@ -53,18 +57,18 @@ export default function Home() {
         left={<StreakBadge count={today.streak} onPress={() => router.push('/calendar')} />}
         right={<View style={s.menu}><IconButton type="settings" onPress={() => router.push('/settings')} /></View>}
       />
-      <View style={s.head}>
+      <Pressable style={s.head} onPress={() => router.push('/day-log')} accessibilityRole="button" accessibilityHint="ดูรายการวันนี้">
         <Text variant="display" color="water" align="center" style={s.amount}>{`${formatMl(today.hydration)} ml`}</Text>
         <Text variant="caption" color="muted" align="center">
           {today.count === 0
             ? `เริ่มจิบแก้วแรกของวันกันเลย · เป้าหมาย ${formatMl(today.goal)} ml`
             : `ดื่มแล้ว ${today.percent}% ของเป้าหมาย ${formatMl(today.goal)} ml`}
         </Text>
-      </View>
-
-      <Pressable style={s.mascot} onPress={() => router.push('/day-log')} accessibilityHint="ดูรายการวันนี้">
-        <HydrationMascot percent={today.percent} width={Math.min(300, width - 90)} />
       </Pressable>
+
+      <View style={s.mascot}>
+        <PlayfulMascot percent={today.percent} width={Math.min(300, width - 90)} reaction={reaction} />
+      </View>
 
       <View>
         {firstRun && (
