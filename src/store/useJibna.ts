@@ -63,7 +63,7 @@ export const useJibna = create<State & Actions>()(
         start: '08:00',
         end: '21:00',
         hotBoost: true,
-        stopAtGoal: false,
+        stopAtGoal: true, // onboarding promises reminders go quiet once the goal is met
         sleepMode: true,
       },
       lastCelebrated: null,
