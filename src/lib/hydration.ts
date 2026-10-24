@@ -238,6 +238,26 @@ export function parseBackup(text: string): { version: number; data: Record<strin
   return { version: b.version, data: b.data };
 }
 
+export const STORE_VERSION = 3;
+
+/** The persisted fields each migration step touches; the rest pass through untouched. */
+type Persisted = { goal: number; entries?: Entry[]; goals?: GoalLog; drinkOrder?: DrinkType[]; hiddenDrinks?: DrinkType[] };
+
+/**
+ * Bring persisted (or restored-backup) state up to STORE_VERSION, step by step.
+ * v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
+ * v3: drinks list (order + hidden), defaults to every drink in the built-in order.
+ * Data from a *newer* version (app downgraded) is kept as is rather than dropped: unknown fields
+ * are ignored and the known ones still read fine.
+ */
+export function migrateState<T extends Persisted>(persisted: T, version: number): T {
+  let s = persisted;
+  if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
+  if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
+  if (version < 3) s = { ...s, drinkOrder: drinkOrder([]), hiddenDrinks: [] };
+  return s;
+}
+
 /** Store v0 → v1: liquor entries logged before mixers existed were neat. */
 export function migrateEntries(entries: Entry[]): Entry[] {
   return entries.map((e) => (e.type === 'Liquor' && !e.mix ? { ...e, mix: { kind: 'neat', liquorMl: e.ml } } : e));

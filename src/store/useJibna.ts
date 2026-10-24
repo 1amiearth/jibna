@@ -8,10 +8,10 @@ import {
   dayKey,
   DEFAULT_PROFILE,
   DRINK_TYPES,
-  drinkOrder,
   fitWindow,
   type DrinkType,
-  migrateEntries,
+  migrateState,
+  STORE_VERSION,
   withGoal,
   type Entry,
   type GoalLog,
@@ -21,6 +21,7 @@ import {
 } from '@/lib/hydration';
 
 export type { Reminders };
+export { STORE_VERSION };
 
 export type Toast = {
   id: number;
@@ -67,21 +68,6 @@ type Actions = {
   undoToast: () => void;
   hideToast: () => void;
 };
-
-export const STORE_VERSION = 3;
-
-/**
- * Bring persisted (or restored-backup) state up to STORE_VERSION.
- * v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
- * v3: drinks list (order + hidden), defaults to every drink in the built-in order.
- */
-export function migrateState(persisted: State, version: number): State {
-  let s = persisted;
-  if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
-  if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
-  if (version < 3) s = { ...s, drinkOrder: drinkOrder([]), hiddenDrinks: [] };
-  return s;
-}
 
 // What a backup holds: everything persisted except transient UI state.
 const BACKUP_KEYS = ['onboarded', 'profile', 'goal', 'goalIsCustom', 'goals', 'drinkOrder', 'hiddenDrinks', 'entries', 'reminders', 'lastCelebrated'] as const;

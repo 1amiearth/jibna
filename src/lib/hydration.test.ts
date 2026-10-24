@@ -37,6 +37,8 @@ import {
   challengeFor,
   challengeProgress,
   migrateEntries,
+  migrateState,
+  STORE_VERSION,
   waterDrops,
   withGoal,
   planSchedule,
@@ -336,4 +338,22 @@ test('month grid: Monday first, weeks padded, leap February', () => {
   assert.ok(monthGrid(2028, 1).flat().includes('2028-02-29'));
   assert.ok(!monthGrid(2026, 1).flat().includes('2026-02-29'));
   assert.ok(monthGrid(2026, 9).every((w) => w.length === 7));
+});
+
+test('store migration: a v0 save comes up to the current version; newer saves are kept', () => {
+  type Saved = { goal: number; entries?: Entry[]; goals?: { from: string; ml: number }[]; drinkOrder?: Entry['type'][]; hiddenDrinks?: Entry['type'][]; reminders?: object };
+  const v0: Saved = { goal: 2500, entries: [{ id: 'l', type: 'Liquor', ml: 30, at: at(20, 21) }, { id: 'w', type: 'Water', ml: 350, at: at(20, 9) }] as Entry[], reminders: { enabled: true } };
+  const s = migrateState(v0, 0);
+  assert.deepEqual(s.entries![0].mix, { kind: 'neat', liquorMl: 30 }); // v1
+  assert.deepEqual(s.goals, [{ from: '', ml: 2500 }]); // v2
+  assert.equal(s.drinkOrder!.length, 8); // v3
+  assert.deepEqual(s.hiddenDrinks, []);
+  assert.deepEqual(s.reminders, { enabled: true }); // untouched fields pass through
+  assert.equal(STORE_VERSION, 3);
+  // Already current: nothing rewritten (custom drink order survives).
+  const v3 = { ...s, drinkOrder: ['Beer', ...s.drinkOrder!.filter((t) => t !== 'Beer')] as Entry['type'][] };
+  assert.deepEqual(migrateState(v3, 3).drinkOrder![0], 'Beer');
+  // From a newer app (downgrade): kept as is, extra fields included.
+  const v9 = { ...v3, futureField: 1 };
+  assert.equal(migrateState(v9, 9), v9);
 });
