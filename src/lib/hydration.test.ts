@@ -7,6 +7,7 @@ import {
   dayKey,
   dayTotals,
   DEFAULT_PROFILE,
+  fillLevel,
   formatMl,
   mascotMood,
   stepSize,
@@ -90,4 +91,13 @@ test('size picker steps between presets and from a custom amount', () => {
   assert.equal(stepSize(sizes, 1, 400, -1), 1);
   assert.equal(stepSize(sizes, 1, 900, 1), null);
   assert.equal(stepSize(sizes, 1, 100, -1), null);
+});
+
+test('vessel fill spans 0.25–0.9 over the presets and clamps custom amounts', () => {
+  const sizes = [250, 350, 500];
+  assert.equal(fillLevel(250, sizes), 0.25);
+  assert.equal(fillLevel(500, sizes), 0.9);
+  assert.equal(fillLevel(10, sizes), 0.25);
+  assert.equal(fillLevel(2000, sizes), 0.9);
+  assert.equal(fillLevel(30, [30]), 0.25);
 });

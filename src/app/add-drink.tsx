@@ -4,15 +4,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AmountSheet } from '@/components/AmountSheet';
 import { Button } from '@/components/Button';
-import { DrinkArt } from '@/components/DrinkChip';
 import { DrinkGrid } from '@/components/DrinkGrid';
 import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Row, RowGroup } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
-import { SizePicker } from '@/components/SizePicker';
+import { selectionHaptic, SizePicker } from '@/components/SizePicker';
 import { Text } from '@/components/Text';
+import { Vessel, VESSELS } from '@/components/Vessel';
 import { isFuture, WhenPicker, whenLabel } from '@/components/WhenPicker';
 import {
   AMOUNT_MAX,
@@ -21,8 +21,10 @@ import {
   DRINKS,
   formatFactor,
   formatMl,
+  fillLevel,
   formatTime,
   hydrationOf,
+  stepSize,
   type DrinkType,
 } from '@/lib/hydration';
 import { useSheets } from '@/lib/useSheets';
@@ -40,7 +42,7 @@ export default function AddDrink() {
   const [customMl, setCustomMl] = useState<number | null>(null);
   const [at, setAt] = useState<number | null>(null);
   const [draftAt, setDraftAt] = useState(() => Date.now());
-  const sheets = useSheets<'type' | 'more' | 'amount' | 'time'>();
+  const sheets = useSheets<'more' | 'amount' | 'time'>();
   const addEntry = useJibna((s) => s.addEntry);
   const showToast = useJibna((s) => s.showToast);
 
@@ -59,17 +61,24 @@ export default function AddDrink() {
     showToast({ message: `+${formatMl(amount)} ml ${drink.label} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
     router.back();
   };
-
+  // Vessel button: next preset, wrapping back to the smallest.
+  const cycleSize = () => {
+    selectionHaptic();
+    setSizeIndex(stepSize(drink.sizes, sizeIndex, customMl, 1) ?? 0);
+    setCustomMl(null);
+  };
 
   return (
     <Screen style={s.content}>
-      <TopBar right={<IconButton type="close" onPress={() => router.back()} />} />
-      <View style={s.head}>
-        <Text variant="heading" align="center">{drink.label}</Text>
-        <View style={[s.tag, { backgroundColor: negative ? colors.berryTint : colors.waterPale }]}>
-          <Text variant="label" color={negative ? 'berry' : 'water'}>{`นับเป็นน้ำ ${formatFactor(drink.factor)}`}</Text>
-        </View>
-      </View>
+      <TopBar
+        left={
+          <View style={[s.tag, { backgroundColor: negative ? colors.berryTint : colors.waterPale }]}>
+            <Text variant="label" color={negative ? 'berry' : 'water'}>{`${drink.label} · นับเป็นน้ำ ${formatFactor(drink.factor)}`}</Text>
+          </View>
+        }
+        right={<IconButton type="close" onPress={() => router.back()} />}
+      />
+      <View style={s.flex} />
 
       <SizePicker
         type={type}
@@ -96,33 +105,35 @@ export default function AddDrink() {
 
       <View style={s.flex} />
       <View style={s.actions}>
-        <Pressable onPress={() => sheets.show('type')} accessibilityRole="button" accessibilityLabel="เปลี่ยนประเภทเครื่องดื่ม">
-          <DrinkArt type={type} width={44} />
+        <Pressable
+          onPress={cycleSize}
+          style={s.cycle}
+          accessibilityRole="button"
+          accessibilityLabel="เปลี่ยนขนาดแก้ว"
+          accessibilityValue={{ text: `${formatMl(ml)} มิลลิลิตร` }}>
+          <Vessel type={type} level={fillLevel(ml, drink.sizes)} size={40} />
         </Pressable>
-        <Button label={`+ ${drink.label}`} kind="Water" onPress={() => add()} style={s.addBtn} />
+        <Button label={`+ ${drink.label}`} kind="Water" onPress={() => add()} style={[s.addBtn, { backgroundColor: VESSELS[type].accent }]} />
         <IconButton type="more" onPress={() => sheets.show('more')} />
       </View>
 
-      <Sheet visible={sheets.is('type')} title="เลือกเครื่องดื่ม" cancelLabel="ปิด" onCancel={sheets.close}>
+      <Sheet visible={sheets.is('more')} title="เลือกเครื่องดื่ม" cancelLabel="ปิด" onCancel={sheets.close}>
         <DrinkGrid selected={type} onSelect={chooseType} />
         <Text variant="caption" color="muted" align="center" style={s.legend}>
           % = สัดส่วนที่นับเป็นน้ำ · ค่าติดลบ (สีชมพู) = แอลกอฮอล์ ทำให้ร่างกายเสียน้ำ ยอดรวมวันไม่ต่ำกว่า 0
         </Text>
-      </Sheet>
-
-      <Sheet visible={sheets.is('more')} title="ตัวเลือก" cancelLabel="ปิด" onCancel={sheets.close}>
         <View style={s.stretch}>
           <RowGroup>
             <Row label="กำหนดปริมาณเอง" onPress={() => sheets.show('amount')} />
             <Row
               label="เวลาที่ดื่ม"
               value={whenLabel(at)}
+              divider={false}
               onPress={() => {
                 setDraftAt(at ?? Date.now());
                 sheets.show('time');
               }}
             />
-            <Row label="เปลี่ยนประเภทเครื่องดื่ม" divider={false} onPress={() => sheets.show('type')} />
           </RowGroup>
         </View>
         <Text variant="caption" color="muted" align="center">เปลี่ยนเวลาได้ย้อนหลังสูงสุด 7 วัน · ไม่สามารถตั้งเวลาในอนาคต</Text>
@@ -159,12 +170,12 @@ export default function AddDrink() {
 
 const s = StyleSheet.create({
   content: { gap: 8 },
-  head: { alignItems: 'center', gap: 6 },
   tag: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 3 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: colors.soft, marginTop: 8 },
   flex: { flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 },
-  addBtn: { width: 196 },
+  addBtn: { width: 196, paddingHorizontal: 16 },
+  cycle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.soft },
   legend: { width: 320 },
   stretch: { alignSelf: 'stretch' },
 });

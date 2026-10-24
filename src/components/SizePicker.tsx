@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -12,12 +12,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { DrinkArt } from '@/components/DrinkChip';
 import { Text } from '@/components/Text';
-import { DRINKS, formatMl, stepSize, type DrinkType } from '@/lib/hydration';
+import { Vessel } from '@/components/Vessel';
+import { DRINKS, fillLevel, formatMl, stepSize, type DrinkType } from '@/lib/hydration';
 
 const SWIPE_DISTANCE = 40;
 const SWIPE_VELOCITY = 600;
+
+export const selectionHaptic = () => {
+  if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+};
 
 type Props = {
   type: DrinkType;
@@ -28,12 +32,13 @@ type Props = {
 };
 
 /**
- * Glass + amount for Add Drink. Swipe left/right anywhere on it (or tap the side sizes) to
+ * Vessel + amount for Add Drink. Swipe left/right anywhere on it (or tap the side sizes) to
  * step between the drink's presets: snaps one step per swipe, the number slides and pops,
- * the glass grows/shrinks, light haptic per step. VoiceOver: adjustable (swipe up/down).
+ * the liquid level springs, light haptic per step. VoiceOver: adjustable (swipe up/down).
  */
 export function SizePicker({ type, index, custom, onChange }: Props) {
   const reduce = useReducedMotion();
+  const { height } = useWindowDimensions();
   const { sizes, label } = DRINKS[type];
   const ml = custom ?? sizes[index];
   const prevI = stepSize(sizes, index, custom, -1);
@@ -42,14 +47,18 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
   const drag = useSharedValue(0);
   const slide = useSharedValue(0);
   const pop = useSharedValue(1);
-  const min = sizes[0];
-  const max = sizes[sizes.length - 1];
-  const target = 0.8 + 0.2 * Math.min(1, Math.max(0, (ml - min) / (max - min || 1)));
-  const glass = useSharedValue(target);
+  const vessel = Math.min(320, height * 0.42);
 
+  // Any amount change (swipe, side tap, cycle button, new drink) slides the number in from its side.
+  const prevMl = useRef(ml);
   useEffect(() => {
-    glass.set(reduce ? target : withSpring(target, { damping: 11, stiffness: 160 }));
-  }, [target, reduce, glass]);
+    if (ml === prevMl.current) return;
+    const dir = ml > prevMl.current ? 1 : -1;
+    prevMl.current = ml;
+    if (reduce) return;
+    slide.set(withSequence(withTiming(dir, { duration: 0 }), withSpring(0, { damping: 14, stiffness: 180 })));
+    pop.set(withSequence(withTiming(1.12, { duration: 90 }), withSpring(1, { damping: 8 })));
+  }, [ml, reduce, slide, pop]);
 
   const step = (dir: 1 | -1) => {
     const next = stepSize(sizes, index, custom, dir);
@@ -58,11 +67,7 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
       if (!reduce) drag.set(withSequence(withTiming(-dir * 14, { duration: 90 }), withSpring(0, { damping: 8 })));
       return;
     }
-    if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
-    if (!reduce) {
-      slide.set(withSequence(withTiming(dir, { duration: 0 }), withSpring(0, { damping: 14, stiffness: 180 })));
-      pop.set(withSequence(withTiming(1.12, { duration: 90 }), withSpring(1, { damping: 8 })));
-    }
+    selectionHaptic();
     onChange(next);
   };
 
@@ -81,9 +86,7 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
     },
   });
 
-  const artStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: drag.value * 0.6 }, { scale: glass.value }],
-  }));
+  const artStyle = useAnimatedStyle(() => ({ transform: [{ translateX: drag.value * 0.6 }] }));
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: drag.value }] }));
   const numberStyle = useAnimatedStyle(() => ({
     opacity: 1 - Math.abs(slide.value) * 0.6,
@@ -101,8 +104,8 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
         accessibilityHint="ปัดขึ้นหรือลงเพื่อเปลี่ยนขนาด"
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
-        <Animated.View style={[s.art, artStyle]}>
-          <DrinkArt type={type} width={200} />
+        <Animated.View style={artStyle}>
+          <Vessel type={type} level={fillLevel(ml, sizes)} size={vessel} />
         </Animated.View>
         <Animated.View style={[s.row, rowStyle]}>
           <Pressable onPress={() => step(-1)} disabled={prevI == null} hitSlop={12} style={s.side}>
@@ -121,9 +124,8 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
 }
 
 const s = StyleSheet.create({
-  area: { alignSelf: 'stretch', alignItems: 'center', paddingTop: 16, paddingBottom: 4 },
-  art: { height: 240, justifyContent: 'center', transformOrigin: ['50%', '100%', 0] },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 8 },
+  area: { alignSelf: 'stretch', alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 4 },
   side: { width: 56, alignItems: 'center' },
   amount: { minWidth: 170 },
 });

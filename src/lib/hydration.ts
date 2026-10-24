@@ -175,6 +175,13 @@ export function stepSize(sizes: number[], index: number, custom: number | null, 
   return next < 0 || next >= sizes.length ? null : next;
 }
 
+/** Add Drink liquid level 0.25–0.9 across the drink's preset range; custom amounts clamp. */
+export function fillLevel(ml: number, sizes: number[]): number {
+  const min = sizes[0];
+  const max = sizes[sizes.length - 1];
+  return 0.25 + 0.65 * Math.min(1, Math.max(0, (ml - min) / (max - min || 1)));
+}
+
 export type MascotMood = 'thirsty' | 'happy' | 'celebrate' | 'full';
 
 /** Home mascot mood from today's progress: thirsty < 25% ≤ happy < 100% ≤ celebrate < 120% ≤ full. */
