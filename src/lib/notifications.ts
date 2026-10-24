@@ -54,11 +54,16 @@ async function reschedule() {
 }
 
 // One run at a time: a later change waits for the current cancel+schedule pass to finish.
-let queue = Promise.resolve();
-function queueReschedule() {
-  queue = queue.then(reschedule).catch((e) => {
-    if (__DEV__) console.warn('[reminders] reschedule failed', e);
-  });
+let queue: Promise<unknown> = Promise.resolve();
+/** Reschedule now (also the Reminders screen's retry). Failures show on that screen. */
+export function queueReschedule() {
+  queue = queue
+    .then(reschedule)
+    .then(() => useJibna.setState({ reminderSyncFailed: false }))
+    .catch((e) => {
+      if (__DEV__) console.warn('[reminders] reschedule failed', e);
+      useJibna.setState({ reminderSyncFailed: true });
+    });
 }
 
 /** Mount once at the root: keeps scheduled reminders in sync with the store and app foreground. */

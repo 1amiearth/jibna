@@ -37,6 +37,8 @@ type State = {
   reminders: Reminders;
   lastCelebrated: string | null;
   toast: Toast | null; // not persisted
+  /** Last reminder reschedule threw (not persisted). */
+  reminderSyncFailed: boolean;
 };
 
 type Actions = {
@@ -74,6 +76,7 @@ export const useJibna = create<State & Actions>()(
       },
       lastCelebrated: null,
       toast: null,
+      reminderSyncFailed: false,
 
       setProfile: (p) =>
         set((s) => {
@@ -133,7 +136,7 @@ export const useJibna = create<State & Actions>()(
         return s;
       },
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ toast, ...rest }) => rest,
+      partialize: ({ toast, reminderSyncFailed, ...rest }) => rest,
     },
   ),
 );

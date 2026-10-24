@@ -15,7 +15,7 @@ import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
 import { Wheel } from '@/components/Wheel';
 import { formatMl, fromMin, intervalLabel, reminderTimes, windowInsideWake } from '@/lib/hydration';
-import { getPermission, requestPermission, type PermissionState } from '@/lib/notifications';
+import { getPermission, queueReschedule, requestPermission, type PermissionState } from '@/lib/notifications';
 import { useSheets } from '@/lib/useSheets';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
@@ -29,6 +29,7 @@ export default function Reminders() {
   const r = useJibna((s) => s.reminders);
   const set = useJibna((s) => s.setReminders);
   const profile = useJibna((s) => s.profile);
+  const syncFailed = useJibna((s) => s.reminderSyncFailed);
   const today = useToday();
   const [perm, setPerm] = useState<PermissionState>('undetermined');
   const sheets = useSheets<'interval' | 'window'>();
@@ -81,6 +82,13 @@ export default function Reminders() {
         <Row label="เตือนเพิ่มเมื่ออากาศร้อน" large dim={off} toggle={{ value: r.hotBoost, onChange: (hotBoost) => set({ hotBoost }) }} />
         <Row label="หยุดเตือนเมื่อถึงเป้า" large dim={off} divider={false} toggle={{ value: r.stopAtGoal, onChange: (stopAtGoal) => set({ stopAtGoal }) }} />
       </RowGroup>
+
+      {syncFailed && !off && (
+        <View style={s.failed}>
+          <ErrorNote>ตั้งเวลาการเตือนไม่สำเร็จ น้องจิบอาจไม่ได้เตือนตามเวลา</ErrorNote>
+          <Button label="ลองอีกครั้ง" kind="Soft" size="Small" onPress={queueReschedule} style={s.left} />
+        </View>
+      )}
 
       {denied ? (
         <View style={s.banner} accessibilityRole="alert">
@@ -148,6 +156,7 @@ const s = StyleSheet.create({
   bannerHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   left: { alignSelf: 'flex-start' },
   preview: { gap: 10 },
+  failed: { gap: 10 },
   sleep: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 22, backgroundColor: colors.navy },
   wheels: { flexDirection: 'row', gap: 24 },
   wheelCol: { alignItems: 'center', gap: 8 },
