@@ -141,7 +141,7 @@ export default function DayLog() {
                 <DrinkArt type={e.type} width={24} />
                 <Text variant="bodyStrong" style={s.flex}>{entryLabel(e)}</Text>
                 <View style={s.meta}>
-                  <Text variant="caption" color="muted">{`${formatTime(e.at)} • ${entryAmount(e)}`}</Text>
+                  <Text variant="caption" color="muted">{`${e.summary ? 'ทั้งวัน' : formatTime(e.at)} • ${entryAmount(e)}`}</Text>
                   {sub ? <Text variant="label" color={net < 0 ? 'berry' : 'muted'}>{sub}</Text> : null}
                 </View>
                 <Pressable onPress={() => setPending(e)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`ลบ ${entryLabel(e)}`}>

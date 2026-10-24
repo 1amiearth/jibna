@@ -26,6 +26,7 @@ import {
   fitWindow,
   goalOn,
   caffeineOf,
+  compactEntries,
   drinkOrder,
   homeDrinks,
   moveDrink,
@@ -270,4 +271,29 @@ test('day index: cached per entries array, fresh after a change, fast on a year 
   for (let d = 1; d <= 31; d++) dayTotals(year, dayKey(new Date(2026, 9, d)));
   assert.equal(streak(year, () => 2300, new Date(2026, 11, 31, 20).getTime()), 365);
   assert.ok(performance.now() - t0 < 200, `took ${performance.now() - t0} ms`);
+});
+
+test('old days compact into one entry per drink without changing totals', () => {
+  const old = (d: number, h: number, type: Entry['type'], ml: number, mix?: Entry['mix']): Entry => ({ id: `${d}${h}${type}`, type, ml, at: new Date(2025, 0, d, h).getTime(), ...(mix && { mix }) });
+  const log: Entry[] = [
+    old(10, 8, 'Water', 350), old(10, 12, 'Water', 500), old(10, 15, 'Coffee', 200), old(10, 16, 'Coffee', 150),
+    old(10, 20, 'Liquor', 245, { kind: 'soda', liquorMl: 45 }), old(10, 21, 'Liquor', 230, { kind: 'soda', liquorMl: 30 }),
+    old(10, 22, 'Liquor', 30, { kind: 'neat', liquorMl: 30 }), old(11, 9, 'Beer', 320),
+    { id: 'recent', type: 'Water', ml: 350, at: at(24, 9) },
+  ];
+  const now = at(24, 12);
+  const out = compactEntries(log, now);
+  assert.equal(out.length, 1 + 4 + 1); // Jan 10: water, coffee, liquor+soda, liquor neat · Jan 11: beer · recent kept
+  for (const k of ['2025-01-10', '2025-01-11', '2026-10-24']) {
+    const before = dayTotals(log, k);
+    const after = dayTotals(out, k);
+    assert.equal(after.hydration, before.hydration, k);
+    assert.equal(after.total, before.total, k);
+    assert.ok(Math.abs(after.caffeine - before.caffeine) <= 1, k);
+  }
+  const soda = out.find((e) => e.mix?.kind === 'soda')!;
+  assert.deepEqual([soda.ml, soda.mix!.liquorMl, soda.summary], [475, 75, true]);
+  assert.equal(compactEntries(out, now), out); // idempotent, same array
+  const recentOnly = log.slice(-1);
+  assert.equal(compactEntries(recentOnly, now), recentOnly); // nothing old: untouched
 });

@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   calcGoal,
+  compactEntries,
   dayKey,
   DEFAULT_PROFILE,
   DRINK_TYPES,
@@ -54,6 +55,8 @@ type Actions = {
   setDrinkOrder: (order: DrinkType[]) => void;
   setDrinkHidden: (type: DrinkType, hidden: boolean) => void;
   removeEntry: (id: string) => Entry | undefined;
+  /** Merge entries older than a year into per-day summaries (bounded storage). */
+  compactOld: () => void;
   restoreEntry: (e: Entry) => void;
   setReminders: (r: Partial<Reminders>) => void;
   markCelebrated: (day: string) => void;
@@ -124,6 +127,11 @@ export const useJibna = create<State & Actions>()(
           // Keep at least one drink on Home.
           return next.length >= DRINK_TYPES.length ? {} : { hiddenDrinks: next };
         }),
+      compactOld: () =>
+        set((s) => {
+          const entries = compactEntries(s.entries, Date.now());
+          return entries === s.entries ? {} : { entries };
+        }),
       removeEntry: (id) => {
         const entry = get().entries.find((e) => e.id === id);
         set((s) => ({ entries: s.entries.filter((e) => e.id !== id) }));
@@ -155,6 +163,7 @@ export const useJibna = create<State & Actions>()(
       },
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({ toast, reminderSyncFailed, ...rest }) => rest,
+      onRehydrateStorage: () => (state) => state?.compactOld(),
     },
   ),
 );

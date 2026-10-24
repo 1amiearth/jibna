@@ -103,7 +103,8 @@ export const MIXES: Record<MixKind, { label: string; mixer: string; factor: numb
 };
 export const MIX_KINDS = Object.keys(MIXES) as MixKind[];
 
-export type Entry = { id: string; type: DrinkType; ml: number; at: number; mix?: Mix };
+/** `summary`: a whole old day of one drink merged by compactEntries (no real time of day). */
+export type Entry = { id: string; type: DrinkType; ml: number; at: number; mix?: Mix; summary?: true };
 
 export type Sex = 'female' | 'male' | 'other';
 export type Activity = 'low' | 'mid' | 'high';
@@ -168,6 +169,37 @@ export function entryAmount(e: Pick<Entry, 'ml' | 'mix'>): string {
 /** Added-toast text: '+350 ml น้ำเปล่า', or '+ เหล้า ผสมโซดา 45+200 ml' so the sum doesn't read as '+45+200'. */
 export function addedText(e: Pick<Entry, 'type' | 'ml' | 'mix'>): string {
   return e.mix && e.mix.kind !== 'neat' ? `+ ${entryLabel(e)} ${entryAmount(e)}` : `+${entryAmount(e)} ${entryLabel(e)}`;
+}
+
+/** Days kept entry-by-entry; older days are merged into one summary entry per drink. */
+export const DETAIL_DAYS = 365;
+
+/**
+ * Keeps storage bounded (the whole log is one AsyncStorage value): entries on days older than
+ * `keepDays` are merged per day × drink × mix into one entry at noon. Day totals, caffeine
+ * (±1 mg rounding), streaks and drops don't change, since hydration is linear in ml. Idempotent.
+ * Returns the same array when there's nothing to merge.
+ */
+export function compactEntries(entries: Entry[], now: number, keepDays = DETAIL_DAYS): Entry[] {
+  const cutoff = new Date(now);
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - keepDays);
+  const old = entries.filter((e) => e.at < cutoff.getTime());
+  const groups = new Map<string, Entry[]>();
+  for (const e of old) {
+    const g = `${dayKey(e.at)}|${e.type}|${e.mix?.kind ?? ''}`;
+    groups.set(g, [...(groups.get(g) ?? []), e]);
+  }
+  if ([...groups.values()].every((g) => g.length === 1 && g[0].summary)) return entries;
+  const merged = [...groups.entries()].map(([g, es]): Entry => {
+    const [key, type, kind] = g.split('|');
+    const at = fromKey(key);
+    at.setHours(12, 0, 0, 0);
+    const e: Entry = { id: `sum-${key}-${type}-${kind}`, type: type as DrinkType, ml: es.reduce((s, x) => s + x.ml, 0), at: at.getTime(), summary: true };
+    if (kind) e.mix = { kind: kind as MixKind, liquorMl: es.reduce((s, x) => s + (x.mix?.liquorMl ?? x.ml), 0) };
+    return e;
+  });
+  return [...merged, ...entries.filter((e) => e.at >= cutoff.getTime())];
 }
 
 /** Store v0 → v1: liquor entries logged before mixers existed were neat. */
