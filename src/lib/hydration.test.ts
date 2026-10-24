@@ -8,6 +8,8 @@ import {
   dayTotals,
   DEFAULT_PROFILE,
   fillLevel,
+  vesselFill,
+  isBottle,
   formatMl,
   mascotMood,
   stepSize,
@@ -201,4 +203,16 @@ test('caffeine per serving', () => {
   assert.equal(caffeineOf({ type: 'ThaiTea', ml: 250 }), 40);
   assert.equal(caffeineOf({ type: 'Coffee', ml: 200 }), 95);
   assert.equal(caffeineOf({ type: 'Water', ml: 350 }), 0);
+});
+
+test('water bottles: 600 ml and 1.5 L draw as a bottle with their own fill scale', () => {
+  const sizes = [250, 350, 500, 600, 1500];
+  assert.equal(isBottle('Water', 500), false);
+  assert.equal(isBottle('Water', 600), true);
+  assert.equal(isBottle('Coffee', 1000), false);
+  assert.equal(vesselFill('Water', 250, sizes), 0.25);
+  assert.equal(vesselFill('Water', 500, sizes), 0.9);
+  assert.equal(vesselFill('Water', 1500, sizes), 0.9);
+  assert.ok(Math.abs(vesselFill('Water', 600, sizes) - 0.51) < 0.01);
+  assert.equal(vesselFill('Coffee', 200, [150, 200, 350]), fillLevel(200, [150, 200, 350]));
 });

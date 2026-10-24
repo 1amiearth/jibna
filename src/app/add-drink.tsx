@@ -23,7 +23,7 @@ import {
   entryLabel,
   formatFactor,
   formatMl,
-  fillLevel,
+  vesselFill,
   formatTime,
   hydrationOf,
   MIXER_MAX_ML,
@@ -166,7 +166,7 @@ export default function AddDrink() {
         </Text>
       ) : (
         <Text variant="caption" color="muted" align="center">
-          {at == null ? 'ปัดซ้าย–ขวาเพื่อเปลี่ยนขนาดแก้ว' : `บันทึกเป็นเวลา ${whenLabel(at)}`}
+          {at == null ? 'ปัดซ้าย–ขวาเพื่อเปลี่ยนขนาด' : `บันทึกเป็นเวลา ${whenLabel(at)}`}
         </Text>
       )}
       {negative && (
@@ -186,7 +186,7 @@ export default function AddDrink() {
           accessibilityRole="button"
           accessibilityLabel="เปลี่ยนขนาดแก้ว"
           accessibilityValue={{ text: `${formatMl(ml)} มิลลิลิตร` }}>
-          <Vessel type={type} mix={isLiquor ? mixKind : undefined} level={fillLevel(ml, sizes)} size={40} />
+          <Vessel type={type} mix={isLiquor ? mixKind : undefined} ml={ml} level={vesselFill(type, ml, sizes)} size={40} />
         </Pressable>
         <Button label={`+ ${mixed ? entryLabel(preview) : drink.label}`} kind="Water" onPress={() => add()} style={[s.addBtn, { backgroundColor: VESSELS[type].accent }]} />
         <IconButton type="more" onPress={() => sheets.show('more')} />

@@ -20,6 +20,8 @@ export type Drink = {
   sizes: number[];
   /** Largest single entry. For liquor this is the liquor itself; mixers have MIXER_MAX_ML. */
   maxMl: number;
+  /** Sizes from this ml up are drawn as a bottle on Add Drink (water: 600 ml, 1.5 L). */
+  bottleFrom?: number;
   /** Alcohol by volume (0–1); set only for alcoholic drinks. */
   abv?: number;
   caffeineMgPerMl?: number;
@@ -50,7 +52,7 @@ export const alcoholFactor = (abv: number, waterShare: number) => waterShare - M
  *   e.g. เหล้า 45 + โซดา 200 ≈ −115 + 200 = +85
  */
 export const DRINKS: Record<DrinkType, Drink> = {
-  Water: { label: 'น้ำเปล่า', ml: 350, factor: 1, sizes: [250, 350, 500], maxMl: 2000 },
+  Water: { label: 'น้ำเปล่า', ml: 350, factor: 1, sizes: [250, 350, 500, 600, 1500], maxMl: 2000, bottleFrom: 600 },
   // Caffeine: brewed black tea ≈ 0.2 mg/ml, diluted by milk in ชาไทย; green tea ≈ 0.1; coffee ≈ 0.475.
   ThaiTea: { label: 'ชาไทย', ml: 250, factor: 0.8, sizes: [200, 250, 350], maxMl: 1000, caffeineMgPerMl: 0.16 },
   GreenTea: { label: 'ชาเขียว', ml: 300, factor: 0.95, sizes: [200, 300, 400], maxMl: 1000, caffeineMgPerMl: 0.1 },
@@ -337,6 +339,20 @@ export function stepSize(sizes: number[], index: number, custom: number | null, 
 }
 
 /** Add Drink liquid level 0.25–0.9 across the drink's preset range; custom amounts clamp. */
+/** Whether Add Drink draws this amount as a bottle rather than the drink's own vessel. */
+export const isBottle = (type: DrinkType, ml: number) => DRINKS[type].bottleFrom != null && ml >= DRINKS[type].bottleFrom!;
+
+/**
+ * Liquid level for the vessel actually drawn: glass sizes fill across the glass presets, bottle
+ * sizes across 0…largest bottle (so a 600 ml bottle reads ~half, 1.5 L near full).
+ */
+export function vesselFill(type: DrinkType, ml: number, sizes: number[]): number {
+  if (DRINKS[type].bottleFrom == null) return fillLevel(ml, sizes);
+  const bottle = isBottle(type, ml);
+  const group = sizes.filter((s) => isBottle(type, s) === bottle);
+  return fillLevel(ml, bottle ? [0, ...group] : group.length ? group : sizes);
+}
+
 export function fillLevel(ml: number, sizes: number[]): number {
   const min = sizes[0];
   const max = sizes[sizes.length - 1];

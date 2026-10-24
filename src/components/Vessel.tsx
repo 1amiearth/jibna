@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { wavePath } from '@/components/Mascot';
-import type { DrinkType, MixKind } from '@/lib/hydration';
+import { isBottle, type DrinkType, type MixKind } from '@/lib/hydration';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -69,12 +69,15 @@ const BUBBLES = [
 
 /**
  * Drink vessel filled to `level` (0–1) with a gently sloshing surface. Level changes spring.
- * Liquor with a mixer draws a highball; soda adds rising bubbles.
+ * Liquor with a mixer draws a highball (soda adds rising bubbles); water from 600 ml is a bottle.
  */
-export function Vessel({ type, level, size, mix }: { type: DrinkType; level: number; size: number; mix?: MixKind }) {
+export function Vessel({ type, level, size, mix, ml }: { type: DrinkType; level: number; size: number; mix?: MixKind; ml?: number }) {
   const reduce = useReducedMotion();
   const mixed = type === 'Liquor' && mix != null && mix !== 'neat';
-  const { shape, liquid, back, accent } = mixed ? MIXED : VESSELS[type];
+  const look = mixed ? MIXED : VESSELS[type];
+  const { liquid, back, accent } = look;
+  // Big water servings (600 ml, 1.5 L) are a bottle, not a glass.
+  const shape = ml != null && isBottle(type, ml) ? 'bottle' : look.shape;
   const fizzy = mixed && (mix === 'soda' || mix === 'waterSoda');
   const v: Shape = SHAPES[shape];
   const foam = shape === 'beerMug';

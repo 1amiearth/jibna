@@ -14,7 +14,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { Text } from '@/components/Text';
 import { Vessel } from '@/components/Vessel';
-import { DRINKS, fillLevel, formatMl, stepSize, type DrinkType, type MixKind } from '@/lib/hydration';
+import { DRINKS, formatMl, stepSize, vesselFill, type DrinkType, type MixKind } from '@/lib/hydration';
 
 const SWIPE_DISTANCE = 40;
 const SWIPE_VELOCITY = 600;
@@ -109,7 +109,7 @@ export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type]
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
         <Animated.View style={artStyle}>
-          <Vessel type={type} mix={mix} level={fillLevel(ml, sizes)} size={vessel} />
+          <Vessel type={type} mix={mix} ml={ml} level={vesselFill(type, ml, sizes)} size={vessel} />
         </Animated.View>
         <Animated.View style={[s.row, rowStyle]}>
           <Pressable onPress={() => step(-1)} disabled={prevI == null} hitSlop={12} style={s.side}>
