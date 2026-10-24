@@ -96,14 +96,14 @@ export default function DayLog() {
           {`${formatMl(totals.hydration)} ml นับเป็นน้ำ • ${percentOf(totals.hydration, goal)}% ของเป้าหมาย`}
         </Text>
         <Text variant="label" color="muted" align="center">
-          {totals.count ? `ดื่มทั้งหมด ${formatMl(totals.total)} ml · คาเฟอีน ${totals.caffeine} mg` : 'ยังไม่มีการบันทึกวันนี้'}
+          {totals.count ? `ดื่มทั้งหมด ${formatMl(totals.total)} ml · คาเฟอีน ${totals.caffeine} mg` : isToday ? 'ยังไม่มีการบันทึกวันนี้' : 'ดื่มทั้งหมด 0 ml'}
         </Text>
       </View>
 
       {list.length === 0 ? (
         <View style={s.empty}>
           <Mascot pose="Thirsty" width={150} />
-          <Text variant="title" align="center">{isToday ? 'ยังไม่ได้ดื่มอะไรเลยวันนี้' : 'ไม่มีการบันทึกในวันนี้'}</Text>
+          <Text variant="title" align="center">{isToday ? 'ยังไม่ได้ดื่มอะไรเลยวันนี้' : 'ไม่มีการบันทึกในวันนั้น'}</Text>
           <Text variant="caption" color="muted" align="center" style={s.emptyBody}>
             แตะแก้วที่หน้าแรกเพื่อบันทึก หรือเพิ่มย้อนหลังถ้าลืมจด
           </Text>
@@ -162,7 +162,7 @@ export default function DayLog() {
               </View>
             </View>
             <Text variant="caption" color="muted" align="center">
-              {`ยอดวันนี้จะเหลือ ${formatMl(afterDelete)} ml (${percentOf(afterDelete, goal)}% ของเป้าหมาย)`}
+              {`ยอดวัน${isToday ? 'นี้' : 'นั้น'}จะเหลือ ${formatMl(afterDelete)} ml (${percentOf(afterDelete, goal)}% ของเป้าหมาย)`}
             </Text>
             <Button label="ลบรายการ" kind="Danger" onPress={confirmDelete} style={s.full} />
           </>
