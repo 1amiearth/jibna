@@ -48,7 +48,7 @@ const WEATHER: Record<Weather, [string, string]> = {
 const WEIGHTS = Array.from({ length: WEIGHT_MAX - WEIGHT_MIN + 1 }, (_, i) => String(WEIGHT_MIN + i));
 const TIMES = Array.from({ length: 48 }, (_, i) => fromMin(i * 30));
 
-type SheetName = 'sex' | 'weight' | 'activity' | 'weather' | 'sleep' | null;
+type SheetName = 'sex' | 'weight' | 'activity' | 'weather' | 'sleep' | 'keepCustom' | null;
 
 export default function GoalSetup() {
   const { from } = useLocalSearchParams<{ from?: string }>();
@@ -57,6 +57,8 @@ export default function GoalSetup() {
   const stored = useJibna((s) => s.profile);
   const setProfile = useJibna((s) => s.setProfile);
   const setGoal = useJibna((s) => s.setGoal);
+  const currentGoal = useJibna((s) => s.goal);
+  const goalIsCustom = useJibna((s) => s.goalIsCustom);
 
   const [draft, setDraft] = useState<Profile>(stored);
   const [open, setOpen] = useState<SheetName>(null);
@@ -75,12 +77,14 @@ export default function GoalSetup() {
   const awake = awakeMinutes(temp.wake, temp.sleep);
   const awakeError = awake < MIN_AWAKE_MIN ? `ช่วงตื่นต้องยาวอย่างน้อย 8 ชม. — ตอนนี้ ${Math.floor(awake / 60)} ชม.` : null;
 
-  const confirm = () => {
-    setProfile(draft);
-    setGoal(goal, false);
+  const save = (useCalculated: boolean) => {
+    setProfile(draft); // keeps a custom goal as is
+    if (useCalculated) setGoal(goal, false);
     if (fromSettings) router.back();
     else router.push('/onboarding/notifications');
   };
+  // From Settings, don't silently replace a goal the user set by hand.
+  const confirm = () => (fromSettings && goalIsCustom && goal !== currentGoal ? setOpen('keepCustom') : save(true));
 
   return (
     <View style={s.fill}>
@@ -117,6 +121,14 @@ export default function GoalSetup() {
           <Button label="ตั้งเป็นเป้าหมาย" kind="Inverse" onPress={confirm} style={s.cta} />
         </SafeAreaView>
       </View>
+
+      <Sheet visible={open === 'keepCustom'} title="ใช้ค่าที่คำนวณใหม่ไหม?" onCancel={close}>
+        <Text variant="body" color="muted" align="center">
+          {`ตอนนี้ใช้เป้าหมายที่กำหนดเอง ${formatMl(currentGoal)} ml · จากข้อมูลใหม่คำนวณได้ ${formatMl(goal)} ml`}
+        </Text>
+        <Button label={`ใช้ ${formatMl(goal)} ml`} onPress={() => save(true)} style={s.full} />
+        <Button label={`เก็บ ${formatMl(currentGoal)} ml ไว้`} kind="Soft" onPress={() => save(false)} style={s.full} />
+      </Sheet>
 
       <Sheet visible={open === 'sex'} title="เพศ" onCancel={close} onDone={commit}>
         {(Object.keys(SEX) as Sex[]).map((k) => (
@@ -167,6 +179,7 @@ export default function GoalSetup() {
 }
 
 const s = StyleSheet.create({
+  full: { alignSelf: 'stretch' },
   fill: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 24, paddingBottom: 300, gap: 8 },
   title: { marginTop: 8 },
