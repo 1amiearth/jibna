@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { LaunchSplash } from '@/components/LaunchSplash';
 import { ToastHost } from '@/components/Toast';
@@ -32,7 +32,7 @@ export default function RootLayout() {
   // over from an identical first frame and hides it.
   if (!ready) return null;
   return (
-    <View style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFFFFF' } }}>
         <Stack.Screen name="add-drink" options={{ presentation: 'modal' }} />
@@ -44,6 +44,6 @@ export default function RootLayout() {
       {!splashDone && (
         <LaunchSplash firstOpen={!onboarded} onShown={() => SplashScreen.hideAsync()} onDone={() => setSplashDone(true)} />
       )}
-    </View>
+    </GestureHandlerRootView>
   );
 }

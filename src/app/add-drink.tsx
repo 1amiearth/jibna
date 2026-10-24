@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AmountSheet } from '@/components/AmountSheet';
 import { Button } from '@/components/Button';
@@ -11,6 +11,7 @@ import { Mascot } from '@/components/Mascot';
 import { Row, RowGroup } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
+import { SizePicker } from '@/components/SizePicker';
 import { Text } from '@/components/Text';
 import { isFuture, WhenPicker, whenLabel } from '@/components/WhenPicker';
 import {
@@ -53,26 +54,12 @@ export default function AddDrink() {
     setCustomMl(null);
     sheets.close();
   };
-  const move = (dir: 1 | -1) => {
-    setCustomMl(null);
-    setSizeIndex((i) => Math.min(drink.sizes.length - 1, Math.max(0, i + dir)));
-  };
-  const swipe = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12,
-    onPanResponderRelease: (_, g) => {
-      if (g.dx < -30) move(1);
-      if (g.dx > 30) move(-1);
-    },
-  });
-
   const add = (amount = ml) => {
     const entry = addEntry(type, amount, at ?? Date.now());
     showToast({ message: `+${formatMl(amount)} ml ${drink.label} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
     router.back();
   };
 
-  const prev = customMl == null ? drink.sizes[sizeIndex - 1] : undefined;
-  const next = customMl == null ? drink.sizes[sizeIndex + 1] : undefined;
 
   return (
     <Screen style={s.content}>
@@ -84,19 +71,15 @@ export default function AddDrink() {
         </View>
       </View>
 
-      <View style={s.art}>
-        <DrinkArt type={type} width={200} />
-      </View>
-
-      <View {...swipe.panHandlers} style={s.amounts}>
-        <Pressable onPress={() => move(-1)} disabled={prev == null} style={s.side}>
-          <Text variant="title" color="chevron">{prev ?? ''}</Text>
-        </Pressable>
-        <Text variant="display" style={s.amount}>{`${formatMl(ml)} ml`}</Text>
-        <Pressable onPress={() => move(1)} disabled={next == null} style={s.side}>
-          <Text variant="title" color="chevron">{next ?? ''}</Text>
-        </Pressable>
-      </View>
+      <SizePicker
+        type={type}
+        index={sizeIndex}
+        custom={customMl}
+        onChange={(i) => {
+          setCustomMl(null);
+          setSizeIndex(i);
+        }}
+      />
       {negative ? (
         <>
           <Text variant="caption" color="berry" align="center">{`= ${formatMl(delta)} ml จากยอดน้ำวันนี้`}</Text>
@@ -178,10 +161,6 @@ const s = StyleSheet.create({
   content: { gap: 8 },
   head: { alignItems: 'center', gap: 6 },
   tag: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 3 },
-  art: { alignItems: 'center', marginTop: 16, height: 240, justifyContent: 'center' },
-  amounts: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginTop: 8 },
-  side: { width: 56, alignItems: 'center' },
-  amount: { minWidth: 170, textAlign: 'center' },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: colors.soft, marginTop: 8 },
   flex: { flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 },

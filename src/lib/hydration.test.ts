@@ -9,6 +9,7 @@ import {
   DEFAULT_PROFILE,
   formatMl,
   mascotMood,
+  stepSize,
   hydrationOf,
   monthGrid,
   reminderTimes,
@@ -77,4 +78,16 @@ test('helpers', () => {
 
 test('mascot mood thresholds', () => {
   assert.deepEqual([0, 24, 25, 99, 100, 119, 120, 180].map(mascotMood), ['thirsty', 'thirsty', 'happy', 'happy', 'celebrate', 'celebrate', 'full', 'full']);
+});
+
+test('size picker steps between presets and from a custom amount', () => {
+  const sizes = [250, 350, 500];
+  assert.equal(stepSize(sizes, 1, null, 1), 2);
+  assert.equal(stepSize(sizes, 1, null, -1), 0);
+  assert.equal(stepSize(sizes, 2, null, 1), null);
+  assert.equal(stepSize(sizes, 0, null, -1), null);
+  assert.equal(stepSize(sizes, 1, 400, 1), 2);
+  assert.equal(stepSize(sizes, 1, 400, -1), 1);
+  assert.equal(stepSize(sizes, 1, 900, 1), null);
+  assert.equal(stepSize(sizes, 1, 100, -1), null);
 });

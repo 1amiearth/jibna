@@ -162,6 +162,19 @@ export function reminderTimes(intervalMin: number, start: string, end: string): 
   return out;
 }
 
+/**
+ * Next preset index when stepping `dir` from the current size. A custom amount steps to the
+ * nearest preset in that direction. Returns null at either end.
+ */
+export function stepSize(sizes: number[], index: number, custom: number | null, dir: 1 | -1): number | null {
+  if (custom != null) {
+    const i = dir > 0 ? sizes.findIndex((s) => s > custom) : sizes.findLastIndex((s) => s < custom);
+    return i === -1 ? null : i;
+  }
+  const next = index + dir;
+  return next < 0 || next >= sizes.length ? null : next;
+}
+
 export type MascotMood = 'thirsty' | 'happy' | 'celebrate' | 'full';
 
 /** Home mascot mood from today's progress: thirsty < 25% ≤ happy < 100% ≤ celebrate < 120% ≤ full. */
