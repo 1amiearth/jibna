@@ -15,12 +15,17 @@ export function DrinkArt({ type, width = 48 }: { type: DrinkType; width?: number
 
 type Props = { type: DrinkType; onPress?: () => void; selected?: boolean; showAdd?: boolean };
 
-/** Figma: Drink Chip (8 types incl. Beer, Liquor). */
+/**
+ * Figma: Drink Chip (8 types incl. Beer, Liquor). With `selected` set it's a choice in a picker
+ * (VoiceOver: radio "ชาไทย, selected"); without, it's Home's quick-add button ("เพิ่มชาไทย").
+ */
 export function DrinkChip({ type, onPress, selected, showAdd = true }: Props) {
+  const picker = selected !== undefined;
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`เพิ่ม${DRINKS[type].label}`}
+      accessibilityRole={picker ? 'radio' : 'button'}
+      accessibilityState={picker ? { checked: selected } : undefined}
+      accessibilityLabel={picker ? DRINKS[type].label : `เพิ่ม${DRINKS[type].label}`}
       onPress={onPress}
       style={({ pressed }) => [s.chip, selected && s.selected, pressed && { opacity: 0.7 }]}>
       <View style={s.icon}>
