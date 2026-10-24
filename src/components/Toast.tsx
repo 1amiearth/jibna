@@ -1,5 +1,5 @@
 import { Fragment, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 import { SvgXml } from 'react-native-svg';
@@ -10,6 +10,8 @@ import { colors } from '@/theme/tokens';
 
 const OK = '<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#5CC9A7"/><path d="M6.5 11.5l3 3L15.5 8" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const DURATION_MS = 4000;
+/** With VoiceOver/TalkBack on, leave time to swipe to เลิกทำ. */
+const SCREEN_READER_DURATION_MS = 12000;
 // iOS modal screens (Day Log, Calendar) are separate native windows above the root view, so the
 // toast draws in a full-window overlay to stay visible (and undoable) over them.
 const Overlay = Platform.OS === 'ios' ? FullWindowOverlay : Fragment;
@@ -23,8 +25,19 @@ export function ToastHost() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(hide, DURATION_MS);
-    return () => clearTimeout(t);
+    // accessibilityLiveRegion below is Android-only; announce explicitly for VoiceOver.
+    AccessibilityInfo.announceForAccessibility(toast.undo ? `${toast.message} · เลิกทำได้` : toast.message);
+    let cancelled = false;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    AccessibilityInfo.isScreenReaderEnabled()
+      .catch(() => false)
+      .then((on) => {
+        if (!cancelled) t = setTimeout(hide, on ? SCREEN_READER_DURATION_MS : DURATION_MS);
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [toast, hide]);
 
   if (!toast) return null;
