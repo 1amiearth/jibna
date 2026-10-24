@@ -72,6 +72,7 @@ export default function AddDrink() {
   const negative = delta < 0;
 
   const chooseType = (t: DrinkType) => {
+    if (t === type) return sheets.close(); // same drink: keep its mix and size
     setType(t);
     setMixKind('neat');
     setSizeIndex(DRINKS[t].sizes.indexOf(DRINKS[t].ml));
