@@ -215,6 +215,44 @@ export function streak(entries: Entry[], goalFor: (key: string) => number, now: 
   return n;
 }
 
+export type Challenge = {
+  id: string;
+  /** Shown as 'ภารกิจวันนี้: …'. */
+  title: string;
+  target: number;
+  /** Progress from that day's entries (newest first) and that day's goal. */
+  progress: (day: Entry[], goal: number) => number;
+};
+
+const hourOf = (e: Entry) => new Date(e.at).getHours();
+const hydrating = (e: Entry) => !isAlcohol(e.type);
+
+/** One per day, in rotation. Alcohol never counts toward a challenge. */
+export const CHALLENGES: Challenge[] = [
+  { id: 'early', title: 'ดื่ม 2 แก้วก่อน 10 โมง', target: 2, progress: (d) => d.filter((e) => hydrating(e) && hourOf(e) < 10).length },
+  { id: 'water4', title: 'ดื่มน้ำเปล่า 4 แก้ว', target: 4, progress: (d) => d.filter((e) => e.type === 'Water').length },
+  {
+    id: 'halfByNoon',
+    title: 'ดื่มให้ถึงครึ่งเป้าก่อนเที่ยง',
+    target: 1,
+    progress: (d, goal) => (d.filter((e) => hourOf(e) < 12).reduce((s, e) => s + hydrationOf(e), 0) >= goal / 2 ? 1 : 0),
+  },
+  { id: 'afternoon', title: 'จิบน้ำช่วงบ่าย 2 ครั้ง (13–17 น.)', target: 2, progress: (d) => d.filter((e) => hydrating(e) && hourOf(e) >= 13 && hourOf(e) < 17).length },
+  { id: 'five', title: 'ดื่ม 5 ครั้งตลอดวัน', target: 5, progress: (d) => d.filter(hydrating).length },
+];
+
+/** The day's challenge: rotates through CHALLENGES by calendar day. */
+export function challengeFor(key: string): Challenge {
+  const [y, m, d] = key.split('-').map(Number);
+  const day = Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+  return CHALLENGES[day % CHALLENGES.length];
+}
+
+export function challengeProgress(entries: Entry[], key: string, goal: number): { challenge: Challenge; done: number } {
+  const challenge = challengeFor(key);
+  return { challenge, done: Math.min(challenge.target, challenge.progress(entriesOn(entries, key), goal)) };
+}
+
 export const DROPS_PER_GOAL_DAY = 20;
 
 /**

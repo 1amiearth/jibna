@@ -25,6 +25,9 @@ import {
   fitWindow,
   goalOn,
   caffeineOf,
+  CHALLENGES,
+  challengeFor,
+  challengeProgress,
   migrateEntries,
   waterDrops,
   withGoal,
@@ -215,4 +218,25 @@ test('water bottles: 600 ml and 1.5 L draw as a bottle with their own fill scale
   assert.equal(vesselFill('Water', 1500, sizes), 0.9);
   assert.ok(Math.abs(vesselFill('Water', 600, sizes) - 0.51) < 0.01);
   assert.equal(vesselFill('Coffee', 200, [150, 200, 350]), fillLevel(200, [150, 200, 350]));
+});
+
+test('daily challenge rotates by day and counts only that day, never alcohol', () => {
+  const keys = ['2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24'];
+  assert.equal(new Set(keys.map((k) => challengeFor(k).id)).size, CHALLENGES.length);
+  assert.equal(challengeFor('2026-10-24').id, challengeFor('2026-10-24').id);
+  assert.equal(challengeFor('2026-10-24').id, challengeFor('2026-10-29').id); // every 5 days
+  const e = (h: number, type: Entry['type'] = 'Water', ml = 350): Entry => ({ id: `${type}${h}`, type, ml, at: at(24, h) });
+  const day = [e(7), e(8, 'Beer'), e(9, 'Coffee'), e(14), e(20)];
+  const progress = (id: string) => CHALLENGES.find((c) => c.id === id)!.progress(day, 2300);
+  assert.equal(progress('early'), 2); // beer at 8 doesn't count
+  assert.equal(progress('water4'), 3);
+  assert.equal(progress('afternoon'), 1);
+  assert.equal(progress('five'), 4);
+  assert.equal(progress('halfByNoon'), 0); // 350 + 171 + 280 < 1,150
+  // Progress is capped at the target and ignores other days.
+  const waterDay = keys.find((k) => challengeFor(k).id === 'water4')!;
+  const d = Number(waterDay.slice(8));
+  const glasses = [8, 10, 12, 14, 16, 18].map((h): Entry => ({ id: `g${h}`, type: 'Water', ml: 250, at: at(d, h) }));
+  assert.deepEqual(challengeProgress([...glasses, { id: 'x', type: 'Water', ml: 250, at: at(d - 1, 9) }], waterDay, 2300).done, 4);
+  assert.equal(challengeProgress(glasses.slice(0, 1), waterDay, 2300).done, 1);
 });

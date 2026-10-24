@@ -9,7 +9,7 @@ import { Mascot } from '@/components/Mascot';
 import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { DRINK_TYPES, entriesOn, formatMl, hydrationOf, isAlcohol } from '@/lib/hydration';
+import { challengeProgress, DRINK_TYPES, formatMl, hydrationOf } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -51,9 +51,9 @@ export default function Home() {
     }, [today.hydration, today.goal, today.key, lastCelebrated, markCelebrated]),
   );
 
-  // Daily challenge: 2 hydrating drinks before 10:00.
-  const early = entriesOn(entries, today.key).filter((e) => new Date(e.at).getHours() < 10 && !isAlcohol(e.type)).length;
-  const challengeDone = Math.min(early, 2);
+  // Daily challenge, rotating by day (see CHALLENGES).
+  const { challenge, done: challengeDone } = challengeProgress(entries, today.key, today.goal);
+  const challengeMet = challengeDone === challenge.target;
   const firstRun = entries.length === 0;
 
   return (
@@ -96,9 +96,9 @@ export default function Home() {
       </View>
 
       <View style={s.challenge}>
-        <SvgXml xml={CHECK(challengeDone === 2)} width={26} height={26} />
-        <Text variant="bodyStrong" style={s.flex}>ภารกิจวันนี้: ดื่ม 2 แก้วก่อน 10 โมง</Text>
-        <Text variant="button" color="mint">{`${challengeDone}/2`}</Text>
+        <SvgXml xml={CHECK(challengeMet)} width={26} height={26} />
+        <Text variant="bodyStrong" style={s.flex}>{`ภารกิจวันนี้: ${challenge.title}`}</Text>
+        <Text variant="button" color="mint">{`${challengeDone}/${challenge.target}`}</Text>
       </View>
     </Screen>
   );
