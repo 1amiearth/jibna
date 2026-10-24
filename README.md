@@ -1,56 +1,33 @@
-# Welcome to your Expo app 👋
+# จิบนะ · Jibna
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Water-tracker app (Thai) built with Expo SDK 58, TypeScript and Expo Router. Design source:
+Figma file `NYfilO1UlnhguWYAgjB9Yw` ("💧Jibna – Water Tracker App").
 
-## Get started
+## Run
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Use Node 22 (`.nvmrc`); Node 23 is outside Expo's supported range.
 
 ```bash
-npm run reset-project
+nvm use
+npm install
+npx expo start          # press i (iOS simulator), a (Android) or w (web), or scan with Expo Go
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Checks
 
-### Other setup steps
+```bash
+npm run typecheck       # tsc --noEmit
+npm test                # pure domain logic (node --test)
+npx expo-doctor
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Layout
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `src/app/` routes: onboarding (welcome, goal-setup, notifications), home, add-drink, day-log,
+  calendar, reminders, goal-reached, settings, edit-goal.
+- `src/components/` Figma components: Button, IconButton, Row/Toggle, Option, Sheet, Toast, Keypad,
+  DrinkChip, Mascot/HydrationMascot, Wheel.
+- `src/lib/hydration.ts` goal formula, drink table with hydration factors (Beer −40%, Liquor −300%),
+  day totals (never below 0), streak, reminder times.
+- `src/store/useJibna.ts` zustand store persisted to AsyncStorage.
+- `src/assets/svg.ts` SVGs exported from Figma.

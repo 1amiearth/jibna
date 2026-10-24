@@ -14,7 +14,7 @@ export default function Welcome() {
   return (
     <View style={s.fill}>
       <SvgXml xml={artSvg.waves} width={width} height={300} style={s.waves} />
-      <Screen bg="bg" style={s.content}>
+      <Screen bg="transparent" style={s.content}>
         <View style={s.hero}>
           <Text variant="display" color="water" align="center" style={s.logo}>จิบนะ</Text>
           <Text variant="body" color="muted" align="center" style={s.tagline}>
@@ -36,10 +36,10 @@ export default function Welcome() {
 const s = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
   waves: { position: 'absolute', bottom: 0 },
-  content: { justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'transparent' },
+  content: { justifyContent: 'space-between', alignItems: 'center' },
   hero: { alignItems: 'center', marginTop: 56, gap: 4 },
   logo: { fontSize: 64, lineHeight: 88 },
-  tagline: { width: 220 },
+  tagline: { width: 240 },
   cta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', marginBottom: 8 },
   lang: { backgroundColor: colors.bg, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 8 },
   start: { alignSelf: 'auto', width: 200 },

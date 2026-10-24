@@ -90,11 +90,11 @@ export default function AddDrink() {
 
       <View {...swipe.panHandlers} style={s.amounts}>
         <Pressable onPress={() => move(-1)} disabled={prev == null} style={s.side}>
-          <Text variant="title" color="divider">{prev ?? ''}</Text>
+          <Text variant="title" color="chevron">{prev ?? ''}</Text>
         </Pressable>
         <Text variant="display" style={s.amount}>{`${formatMl(ml)} ml`}</Text>
         <Pressable onPress={() => move(1)} disabled={next == null} style={s.side}>
-          <Text variant="title" color="divider">{next ?? ''}</Text>
+          <Text variant="title" color="chevron">{next ?? ''}</Text>
         </Pressable>
       </View>
       {negative ? (
