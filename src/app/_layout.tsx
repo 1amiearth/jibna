@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ToastHost } from '@/components/Toast';
+import { useReminderSync } from '@/lib/notifications';
 import { useJibna } from '@/store/useJibna';
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +23,7 @@ export default function RootLayout() {
   const [anuphan] = useAnuphan({ Anuphan_400Regular, Anuphan_500Medium, Anuphan_600SemiBold });
   const hydrated = useStoreHydrated();
   const ready = mitr && anuphan && hydrated;
+  useReminderSync(hydrated);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
