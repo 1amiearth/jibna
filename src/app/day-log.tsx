@@ -27,6 +27,7 @@ import {
   formatMl,
   formatTime,
   fromKey,
+  goalOn,
   hydrationOf,
   percentOf,
   type DrinkType,
@@ -54,7 +55,8 @@ export default function DayLog() {
   const isToday = key === dayKey(now);
   const canBackdate = (now - fromKey(key).getTime()) / 86400000 < BACKDATE_DAYS + 1;
   const entries = useJibna((s) => s.entries);
-  const goal = useJibna((s) => s.goal);
+  const goals = useJibna((s) => s.goals);
+  const goal = goalOn(goals, key, useJibna((s) => s.goal)); // that day's goal
   const removeEntry = useJibna((s) => s.removeEntry);
   const addEntry = useJibna((s) => s.addEntry);
   const showToast = useJibna((s) => s.showToast);

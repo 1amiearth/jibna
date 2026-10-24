@@ -178,14 +178,29 @@ export function percentOf(hydration: number, goal: number): number {
 }
 
 /**
- * Consecutive days meeting the goal, ending today (if met) or yesterday.
- * ponytail: uses the current goal for past days; store goal history if goals change often.
+ * Daily-goal changes, oldest first. Each applies from its day on; `from: ''` is the goal that
+ * was in place before any recorded change, so past days keep the goal they were logged under.
  */
-export function streak(entries: Entry[], goal: number, now: number): number {
+export type GoalLog = { from: string; ml: number }[];
+
+export function goalOn(log: GoalLog, key: string, fallback: number): number {
+  let ml = fallback;
+  for (const g of log) if (g.from <= key) ml = g.ml;
+  return ml;
+}
+
+/** Record `ml` as the goal from day `key` on (replaces any change already made that day). */
+export function withGoal(log: GoalLog, key: string, ml: number): GoalLog {
+  return [...log.filter((g) => g.from < key), { from: key, ml }];
+}
+
+/** Consecutive days meeting that day's goal, ending today (if met) or yesterday. */
+export function streak(entries: Entry[], goalFor: (key: string) => number, now: number): number {
+  const met = (d: Date) => dayTotals(entries, dayKey(d)).hydration >= goalFor(dayKey(d));
   const d = new Date(now);
-  if (dayTotals(entries, dayKey(d)).hydration < goal) d.setDate(d.getDate() - 1);
+  if (!met(d)) d.setDate(d.getDate() - 1);
   let n = 0;
-  while (dayTotals(entries, dayKey(d)).hydration >= goal) {
+  while (met(d)) {
     n++;
     d.setDate(d.getDate() - 1);
   }

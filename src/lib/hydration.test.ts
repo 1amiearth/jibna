@@ -19,7 +19,9 @@ import {
   awakeMinutes,
   entryAmount,
   entryLabel,
+  goalOn,
   migrateEntries,
+  withGoal,
   planSchedule,
   type Entry,
   type Reminders,
@@ -60,9 +62,9 @@ test('alcohol: one ABV formula, water content minus 10 ml per gram; the day neve
 test('streak counts back from today, or yesterday if today not met yet', () => {
   const full = (d: number): Entry => ({ id: `d${d}`, type: 'Water', ml: 2300, at: at(d, 12) });
   const log = [full(21), full(22), full(23)];
-  assert.equal(streak(log, 2300, at(24, 9)), 3);
-  assert.equal(streak([...log, full(24)], 2300, at(24, 20)), 4);
-  assert.equal(streak([full(21), full(23)], 2300, at(24, 9)), 1);
+  assert.equal(streak(log, () => 2300, at(24, 9)), 3);
+  assert.equal(streak([...log, full(24)], () => 2300, at(24, 20)), 4);
+  assert.equal(streak([full(21), full(23)], () => 2300, at(24, 9)), 1);
 });
 
 test('reminder counts match the Figma interval sheet (08:00–21:00)', () => {
@@ -157,4 +159,16 @@ test('reminder plan covers up to a week, stays under the iOS 64 limit, and respe
   // Hot boost adds midday nudges when they aren't next to an existing slot.
   const hourly = planSchedule(at(24, 7), { ...r, intervalMin: 120, start: '08:00', end: '20:00' }, true, 500);
   assert.equal(hourly.filter((p) => new Date(p.at).getDate() === 24).length, 6 + 2);
+});
+
+test('goal history: raising the goal today keeps past days (and the streak) under the old goal', () => {
+  const full = (d: number): Entry => ({ id: `d${d}`, type: 'Water', ml: 2300, at: at(d, 12) });
+  const log = withGoal([{ from: '', ml: 2300 }], '2026-10-24', 3000);
+  assert.equal(goalOn(log, '2026-10-20', 9999), 2300);
+  assert.equal(goalOn(log, '2026-10-24', 9999), 3000);
+  assert.equal(goalOn([], '2026-10-24', 2500), 2500);
+  const g = (k: string) => goalOn(log, k, 3000);
+  assert.equal(streak([full(21), full(22), full(23)], g, at(24, 9)), 3);
+  // Changing it twice the same day keeps one record for that day.
+  assert.deepEqual(withGoal(log, '2026-10-24', 2800), [{ from: '', ml: 2300 }, { from: '2026-10-24', ml: 2800 }]);
 });

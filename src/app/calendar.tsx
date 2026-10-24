@@ -7,7 +7,7 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { dayKey, dayTotals, monthGrid, TH_MONTHS } from '@/lib/hydration';
+import { dayKey, dayTotals, goalOn, monthGrid, TH_MONTHS } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -35,6 +35,7 @@ function Ring({ percent, size = 236 }: { percent: number; size?: number }) {
 export default function Calendar() {
   const today = useToday();
   const entries = useJibna((s) => s.entries);
+  const goals = useJibna((s) => s.goals);
   const now = new Date();
   const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const isCurrent = month.y === now.getFullYear() && month.m === now.getMonth();
@@ -46,7 +47,7 @@ export default function Calendar() {
     const day = Number(key.slice(8));
     const future = key > todayKey;
     const h = dayTotals(entries, key).hydration;
-    const met = h >= today.goal;
+    const met = h >= goalOn(goals, key, today.goal);
     const isToday = key === todayKey;
     const bg = isToday ? colors.ink : met ? colors.water : h > 0 ? colors.waterPale : 'transparent';
     const fg = isToday || met ? 'bg' : h > 0 ? 'water' : future ? 'divider' : 'muted';

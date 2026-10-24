@@ -4,10 +4,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   calcGoal,
+  dayKey,
   DEFAULT_PROFILE,
   type DrinkType,
   migrateEntries,
+  withGoal,
   type Entry,
+  type GoalLog,
   type Mix,
   type Profile,
   type Reminders,
@@ -27,6 +30,8 @@ type State = {
   profile: Profile;
   goal: number;
   goalIsCustom: boolean;
+  /** Goal per day for history (streak, calendar); `goal` is always today's. */
+  goals: GoalLog;
   entries: Entry[];
   reminders: Reminders;
   lastCelebrated: string | null;
@@ -56,6 +61,7 @@ export const useJibna = create<State & Actions>()(
       profile: DEFAULT_PROFILE,
       goal: calcGoal(DEFAULT_PROFILE),
       goalIsCustom: false,
+      goals: [{ from: '', ml: calcGoal(DEFAULT_PROFILE) }],
       entries: [],
       reminders: {
         enabled: false,
@@ -72,9 +78,11 @@ export const useJibna = create<State & Actions>()(
       setProfile: (p) =>
         set((s) => {
           const profile = { ...s.profile, ...p };
-          return { profile, goal: s.goalIsCustom ? s.goal : calcGoal(profile) };
+          const goal = s.goalIsCustom ? s.goal : calcGoal(profile);
+          return { profile, goal, goals: goal === s.goal ? s.goals : withGoal(s.goals, dayKey(Date.now()), goal) };
         }),
-      setGoal: (goal, goalIsCustom) => set({ goal, goalIsCustom }),
+      setGoal: (goal, goalIsCustom) =>
+        set((s) => ({ goal, goalIsCustom, goals: goal === s.goal ? s.goals : withGoal(s.goals, dayKey(Date.now()), goal) })),
       completeOnboarding: (enabled) =>
         set((s) => ({ onboarded: true, reminders: { ...s.reminders, enabled } })),
       addEntry: (type, ml, at = Date.now(), mix) => {
@@ -103,11 +111,13 @@ export const useJibna = create<State & Actions>()(
     }),
     {
       name: 'jibna-v1',
-      version: 1,
-      // v1: Entry.mix (liquor mixers).
+      version: 2,
+      // v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
       migrate: (persisted, version) => {
-        const s = persisted as State;
-        return version < 1 ? { ...s, entries: migrateEntries(s.entries ?? []) } : s;
+        let s = persisted as State;
+        if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
+        if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
+        return s;
       },
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({ toast, ...rest }) => rest,

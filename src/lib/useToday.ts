@@ -1,4 +1,4 @@
-import { dayKey, dayTotals, percentOf, streak } from '@/lib/hydration';
+import { dayKey, dayTotals, goalOn, percentOf, streak } from '@/lib/hydration';
 import { useNow } from '@/lib/useNow';
 import { useJibna } from '@/store/useJibna';
 
@@ -6,8 +6,9 @@ import { useJibna } from '@/store/useJibna';
 export function useToday() {
   const entries = useJibna((s) => s.entries);
   const goal = useJibna((s) => s.goal);
+  const goals = useJibna((s) => s.goals);
   const now = useNow();
   const key = dayKey(now);
   const totals = dayTotals(entries, key);
-  return { key, goal, ...totals, percent: percentOf(totals.hydration, goal), streak: streak(entries, goal, now) };
+  return { key, goal, ...totals, percent: percentOf(totals.hydration, goal), streak: streak(entries, (k) => goalOn(goals, k, goal), now) };
 }
