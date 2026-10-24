@@ -81,7 +81,9 @@ export default function EditGoal() {
         title="เป้าหมายต่อวัน"
         initial={value}
         hint={`ช่วงที่รองรับ ${formatMl(GOAL_MIN)}–${formatMl(GOAL_MAX)} ml`}
-        validate={rangeError}
+        // Below the minimum just keeps the button disabled while typing (the hint shows the range).
+        min={GOAL_MIN}
+        validate={(n) => (n > GOAL_MAX ? rangeError(n) : null)}
         confirmLabel={(n) => `ใช้ ${formatMl(n)} ml`}
         confirmKind="Primary"
         onConfirm={(n) => {
