@@ -42,6 +42,7 @@ export default function Settings() {
           <Row label="ข้อมูลร่างกาย" onPress={() => router.push({ pathname: '/onboarding/goal-setup', params: { from: 'settings' } })} />
           <Row label="การเตือน" value={r.enabled ? `ทุก ${intervalLabel(r.intervalMin)}` : 'ปิด'} onPress={() => router.push('/reminders')} />
           <Row label="เครื่องดื่ม" value={`แสดง ${DRINK_TYPES.length - hiddenCount}/${DRINK_TYPES.length}`} onPress={() => router.push('/drinks')} />
+          <Row label="สำรองข้อมูล" onPress={() => router.push('/backup')} />
           <Row label="ภาษา" value="ไทย" chevron={false} divider={false} />
         </RowGroup>
       </View>

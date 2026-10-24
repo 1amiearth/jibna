@@ -26,6 +26,8 @@ import {
   fitWindow,
   goalOn,
   caffeineOf,
+  backupText,
+  parseBackup,
   compactEntries,
   drinkOrder,
   homeDrinks,
@@ -296,4 +298,17 @@ test('old days compact into one entry per drink without changing totals', () => 
   assert.equal(compactEntries(out, now), out); // idempotent, same array
   const recentOnly = log.slice(-1);
   assert.equal(compactEntries(recentOnly, now), recentOnly); // nothing old: untouched
+});
+
+test('backup round-trips and rejects anything that is not a valid Jibna backup', () => {
+  const data = { goal: 2300, entries: [{ id: 'a', type: 'Liquor', ml: 245, at: at(24, 20), mix: { kind: 'soda', liquorMl: 45 } }] };
+  const parsed = parseBackup(backupText(data, 3, at(25, 9)));
+  assert.ok(!('error' in parsed));
+  assert.equal(parsed.version, 3);
+  assert.deepEqual(parsed.data, data);
+  assert.ok('error' in parseBackup('hello'));
+  assert.ok('error' in parseBackup(JSON.stringify({ app: 'other', version: 1, data })));
+  assert.ok('error' in parseBackup(backupText({ ...data, entries: [{ id: 'x', type: 'Vodka', ml: 30, at: 1 }] }, 3, 0)));
+  assert.ok('error' in parseBackup(backupText({ ...data, goal: 99999 }, 3, 0)));
+  assert.ok('error' in parseBackup(backupText(data, -1, 0)));
 });

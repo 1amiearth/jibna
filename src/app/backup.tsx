@@ -1,0 +1,97 @@
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Share, StyleSheet, TextInput, View } from 'react-native';
+
+import { ErrorNote } from '@/components/AmountSheet';
+import { Button } from '@/components/Button';
+import { IconButton } from '@/components/IconButton';
+import { Screen, TopBar } from '@/components/Screen';
+import { Sheet } from '@/components/Sheet';
+import { Text } from '@/components/Text';
+import { backupText, formatMl, parseBackup } from '@/lib/hydration';
+import { STORE_VERSION, useJibna } from '@/store/useJibna';
+import { colors, fonts } from '@/theme/tokens';
+
+/**
+ * Backup (Settings › สำรองข้อมูล). Everything is on-device, so this is the only way to move
+ * history to a new phone: export shares the data as text (save to Files, Notes, LINE…), import
+ * takes that text pasted back and replaces what's here after a confirm.
+ */
+export default function Backup() {
+  const count = useJibna((s) => s.entries.length);
+  const backupData = useJibna((s) => s.backupData);
+  const restore = useJibna((s) => s.restoreBackup);
+  const showToast = useJibna((s) => s.showToast);
+  const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ version: number; data: Record<string, unknown> } | null>(null);
+
+  const exportNow = () =>
+    Share.share({ title: 'ข้อมูลสำรองจิบนะ', message: backupText(backupData(), STORE_VERSION, Date.now()) }).catch(() => {});
+
+  const check = () => {
+    const parsed = parseBackup(text);
+    if ('error' in parsed) return setError(parsed.error);
+    if (parsed.version > STORE_VERSION) return setError('ข้อมูลสำรองนี้มาจากจิบนะเวอร์ชันใหม่กว่า อัปเดตแอปก่อนนำเข้า');
+    setError(null);
+    setPending(parsed);
+  };
+  const confirm = () => {
+    if (!pending) return;
+    restore(pending.data, pending.version);
+    setPending(null);
+    setText('');
+    showToast({ message: 'นำเข้าข้อมูลสำรองแล้ว' });
+    router.back();
+  };
+  const incoming = pending && Array.isArray(pending.data.entries) ? pending.data.entries.length : 0;
+
+  return (
+    <Screen scroll style={s.content}>
+      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <Text variant="heading">สำรองข้อมูล</Text>
+      <Text variant="body" color="muted">ข้อมูลของจิบนะอยู่ในเครื่องนี้เท่านั้น ส่งออกเก็บไว้ก่อนเปลี่ยนเครื่องหรือลบแอป</Text>
+
+      <View style={s.card}>
+        <Text variant="title">ส่งออก</Text>
+        <Text variant="caption" color="muted">{`${formatMl(count)} รายการ พร้อมเป้าหมาย ข้อมูลร่างกาย และการตั้งค่า · บันทึกเป็นข้อความในแอปไฟล์ โน้ต หรือส่งหาตัวเองทาง LINE`}</Text>
+        <Button label="ส่งออกข้อมูลสำรอง" onPress={exportNow} style={s.full} />
+      </View>
+
+      <View style={s.card}>
+        <Text variant="title">นำเข้า</Text>
+        <Text variant="caption" color="muted">วางข้อความข้อมูลสำรองที่ส่งออกไว้ ข้อมูลในเครื่องนี้จะถูกแทนที่ทั้งหมด</Text>
+        <TextInput
+          value={text}
+          onChangeText={(t) => {
+            setText(t);
+            setError(null);
+          }}
+          multiline
+          placeholder="วางข้อมูลสำรองที่นี่"
+          placeholderTextColor={colors.muted}
+          autoCorrect={false}
+          autoCapitalize="none"
+          accessibilityLabel="ข้อมูลสำรองที่จะนำเข้า"
+          style={s.input}
+        />
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <Button label="ตรวจและนำเข้า" kind="Soft" disabled={!text.trim()} onPress={check} style={s.full} />
+      </View>
+
+      <Sheet visible={!!pending} title="แทนที่ข้อมูลทั้งหมด?" onCancel={() => setPending(null)}>
+        <Text variant="body" color="muted" align="center">
+          {`ข้อมูลในเครื่องนี้ (${formatMl(count)} รายการ) จะถูกแทนที่ด้วยข้อมูลสำรอง (${formatMl(incoming)} รายการ) ย้อนกลับไม่ได้`}
+        </Text>
+        <Button label="แทนที่ด้วยข้อมูลสำรอง" kind="Danger" onPress={confirm} style={s.full} />
+      </Sheet>
+    </Screen>
+  );
+}
+
+const s = StyleSheet.create({
+  content: { gap: 12 },
+  card: { gap: 10, padding: 16, borderRadius: 22, backgroundColor: colors.soft },
+  input: { minHeight: 96, maxHeight: 180, borderRadius: 14, padding: 12, backgroundColor: colors.bg, fontFamily: fonts.anuphanRegular, fontSize: 14, color: colors.ink },
+  full: { alignSelf: 'stretch' },
+});

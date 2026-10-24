@@ -202,6 +202,42 @@ export function compactEntries(entries: Entry[], now: number, keepDays = DETAIL_
   return [...merged, ...entries.filter((e) => e.at >= cutoff.getTime())];
 }
 
+const BACKUP_APP = 'jibna';
+
+/** Backup file: the persisted store plus its version, as JSON text (shared via the share sheet). */
+export function backupText(data: object, version: number, now: number): string {
+  return JSON.stringify({ app: BACKUP_APP, version, exportedAt: new Date(now).toISOString(), data });
+}
+
+function validEntry(e: unknown): e is Entry {
+  if (!e || typeof e !== 'object') return false;
+  const x = e as Record<string, unknown>;
+  const mix = x.mix as Record<string, unknown> | undefined;
+  return (
+    typeof x.id === 'string' &&
+    DRINK_TYPES.includes(x.type as DrinkType) &&
+    typeof x.ml === 'number' && Number.isFinite(x.ml) && x.ml > 0 &&
+    typeof x.at === 'number' && Number.isFinite(x.at) &&
+    (mix === undefined || (MIX_KINDS.includes(mix.kind as MixKind) && typeof mix.liquorMl === 'number' && mix.liquorMl > 0))
+  );
+}
+
+/** Parse a pasted backup. Returns the data and its store version, or a Thai error message. */
+export function parseBackup(text: string): { version: number; data: Record<string, unknown> } | { error: string } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text.trim());
+  } catch {
+    return { error: 'ข้อความนี้ไม่ใช่ข้อมูลสำรองของจิบนะ' };
+  }
+  const b = raw as { app?: unknown; version?: unknown; data?: Record<string, unknown> };
+  if (!b || b.app !== BACKUP_APP || !b.data || typeof b.data !== 'object') return { error: 'ข้อความนี้ไม่ใช่ข้อมูลสำรองของจิบนะ' };
+  if (typeof b.version !== 'number' || !Number.isInteger(b.version) || b.version < 0) return { error: 'ไม่รู้จักเวอร์ชันของข้อมูลสำรอง' };
+  if (!Array.isArray(b.data.entries) || !b.data.entries.every(validEntry)) return { error: 'ข้อมูลการดื่มในไฟล์สำรองไม่ถูกต้อง' };
+  if (typeof b.data.goal !== 'number' || !isValidGoal(b.data.goal)) return { error: 'เป้าหมายในไฟล์สำรองไม่ถูกต้อง' };
+  return { version: b.version, data: b.data };
+}
+
 /** Store v0 → v1: liquor entries logged before mixers existed were neat. */
 export function migrateEntries(entries: Entry[]): Entry[] {
   return entries.map((e) => (e.type === 'Liquor' && !e.mix ? { ...e, mix: { kind: 'neat', liquorMl: e.ml } } : e));

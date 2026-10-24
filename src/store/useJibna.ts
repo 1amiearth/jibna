@@ -55,6 +55,9 @@ type Actions = {
   setDrinkOrder: (order: DrinkType[]) => void;
   setDrinkHidden: (type: DrinkType, hidden: boolean) => void;
   removeEntry: (id: string) => Entry | undefined;
+  /** Backup data (persisted fields only) and full replacement from a parsed backup. */
+  backupData: () => BackupData;
+  restoreBackup: (data: Record<string, unknown>, version: number) => void;
   /** Merge entries older than a year into per-day summaries (bounded storage). */
   compactOld: () => void;
   restoreEntry: (e: Entry) => void;
@@ -64,6 +67,25 @@ type Actions = {
   undoToast: () => void;
   hideToast: () => void;
 };
+
+export const STORE_VERSION = 3;
+
+/**
+ * Bring persisted (or restored-backup) state up to STORE_VERSION.
+ * v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
+ * v3: drinks list (order + hidden), defaults to every drink in the built-in order.
+ */
+export function migrateState(persisted: State, version: number): State {
+  let s = persisted;
+  if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
+  if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
+  if (version < 3) s = { ...s, drinkOrder: drinkOrder([]), hiddenDrinks: [] };
+  return s;
+}
+
+// What a backup holds: everything persisted except transient UI state.
+const BACKUP_KEYS = ['onboarded', 'profile', 'goal', 'goalIsCustom', 'goals', 'drinkOrder', 'hiddenDrinks', 'entries', 'reminders', 'lastCelebrated'] as const;
+type BackupData = Pick<State, (typeof BACKUP_KEYS)[number]>;
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
@@ -127,6 +149,17 @@ export const useJibna = create<State & Actions>()(
           // Keep at least one drink on Home.
           return next.length >= DRINK_TYPES.length ? {} : { hiddenDrinks: next };
         }),
+      backupData: () => {
+        const s = get();
+        return Object.fromEntries(BACKUP_KEYS.map((k) => [k, s[k]])) as BackupData;
+      },
+      restoreBackup: (data, version) => {
+        // Start from the current state so fields a backup lacks keep sane values, then migrate.
+        const current = get().backupData();
+        const restored = migrateState({ ...current, ...data } as State, version);
+        const picked = Object.fromEntries(BACKUP_KEYS.map((k) => [k, restored[k]])) as BackupData;
+        set({ ...picked, entries: compactEntries(picked.entries, Date.now()), onboarded: true, toast: null });
+      },
       compactOld: () =>
         set((s) => {
           const entries = compactEntries(s.entries, Date.now());
@@ -151,16 +184,8 @@ export const useJibna = create<State & Actions>()(
     }),
     {
       name: 'jibna-v1',
-      version: 3,
-      // v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
-      // v3: drinks list (order + hidden), defaults to every drink in the built-in order.
-      migrate: (persisted, version) => {
-        let s = persisted as State;
-        if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
-        if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
-        if (version < 3) s = { ...s, drinkOrder: drinkOrder([]), hiddenDrinks: [] };
-        return s;
-      },
+      version: STORE_VERSION,
+      migrate: (persisted, version) => migrateState(persisted as State, version),
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({ toast, reminderSyncFailed, ...rest }) => rest,
       onRehydrateStorage: () => (state) => state?.compactOld(),
