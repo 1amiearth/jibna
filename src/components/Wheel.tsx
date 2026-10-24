@@ -13,6 +13,15 @@ export function Wheel({ values, index: rawIndex, onChange, width = 120, rows = 5
   const index = Math.min(values.length - 1, Math.max(0, rawIndex));
   const pad = ((rows - 1) / 2) * ROW;
   const last = useRef(index);
+  const list = useRef<FlatList<string>>(null);
+  // VoiceOver: the wheel is one adjustable element; swipe up/down steps a row.
+  const step = (dir: 1 | -1) => {
+    const i = Math.min(values.length - 1, Math.max(0, index + dir));
+    if (i === index) return;
+    last.current = i;
+    list.current?.scrollToOffset({ offset: i * ROW, animated: true });
+    onChange(i);
+  };
   const settle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.min(values.length - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.y / ROW)));
     if (i !== last.current) {
@@ -21,9 +30,17 @@ export function Wheel({ values, index: rawIndex, onChange, width = 120, rows = 5
     }
   };
   return (
-    <View style={{ width, height: rows * ROW }} accessibilityLabel={label} accessibilityValue={{ text: values[index] }}>
+    <View
+      style={{ width, height: rows * ROW }}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={label}
+      accessibilityValue={{ text: values[index] }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
       <View pointerEvents="none" style={[s.band, { top: pad - 2 }]} />
       <FlatList
+        ref={list}
         data={values}
         keyExtractor={(v, i) => `${i}-${v}`}
         showsVerticalScrollIndicator={false}
