@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import Animated, {
+  type SharedValue,
   cancelAnimation,
   Easing,
   useAnimatedProps,
@@ -9,12 +10,13 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { wavePath } from '@/components/Mascot';
-import type { DrinkType } from '@/lib/hydration';
+import type { DrinkType, MixKind } from '@/lib/hydration';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // Shapes in a 405×405 box so the Mascot's wavePath fits unchanged. `top`/`bottom` = liquid range,
 // `shine` = x of the glass highlight. Paths are absolute: iOS ignores transforms inside <ClipPath>.
@@ -36,6 +38,7 @@ const SHAPES = {
     shine: 101,
   },
   shot: { body: 'M140 210 H265 L250 375 Q249 390 234 390 H171 Q156 390 155 375 Z', top: 210, bottom: 390, shine: 166 },
+  highball: { body: 'M128 30 H277 V370 Q277 390 257 390 H148 Q128 390 128 370 Z', top: 30, bottom: 390, shine: 152 },
 } as const;
 
 type Shape = { body: string; top: number; bottom: number; shine: number; handle?: string; cap?: boolean };
@@ -52,10 +55,27 @@ export const VESSELS: Record<DrinkType, { shape: keyof typeof SHAPES; liquid: st
   Liquor: { shape: 'shot', liquid: '#C47F35', back: '#DDA866', accent: '#B8722A' },
 };
 
-/** Drink vessel filled to `level` (0–1) with a gently sloshing surface. Level changes spring. */
-export function Vessel({ type, level, size }: { type: DrinkType; level: number; size: number }) {
+/** Mixed liquor: tall highball, amber diluted by the mixer. */
+const MIXED = { shape: 'highball', liquid: '#E3B373', back: '#F0D3A6', accent: '#B8722A' } as const;
+
+// Soda bubbles: x in the highball, size, phase offset of the rise loop.
+const BUBBLES = [
+  [160, 7, 0],
+  [205, 5, 0.35],
+  [245, 8, 0.6],
+  [182, 4, 0.8],
+  [228, 6, 0.15],
+] as const;
+
+/**
+ * Drink vessel filled to `level` (0–1) with a gently sloshing surface. Level changes spring.
+ * Liquor with a mixer draws a highball; soda adds rising bubbles.
+ */
+export function Vessel({ type, level, size, mix }: { type: DrinkType; level: number; size: number; mix?: MixKind }) {
   const reduce = useReducedMotion();
-  const { shape, liquid, back, accent } = VESSELS[type];
+  const mixed = type === 'Liquor' && mix != null && mix !== 'neat';
+  const { shape, liquid, back, accent } = mixed ? MIXED : VESSELS[type];
+  const fizzy = mixed && (mix === 'soda' || mix === 'waterSoda');
   const v: Shape = SHAPES[shape];
   const foam = shape === 'beerMug';
   const id = `vessel-${shape}`;
@@ -73,6 +93,17 @@ export function Vessel({ type, level, size }: { type: DrinkType; level: number; 
     }
     slosh.set(withRepeat(withTiming(1, { duration: 1900, easing: Easing.inOut(Easing.sin) }), -1, true));
   }, [reduce, slosh]);
+
+  const rise = useSharedValue(0);
+  useEffect(() => {
+    if (!fizzy || reduce) {
+      cancelAnimation(rise);
+      rise.set(0.5);
+      return;
+    }
+    rise.set(0);
+    rise.set(withRepeat(withTiming(1, { duration: 2600, easing: Easing.linear }), -1, false));
+  }, [fizzy, reduce, rise]);
 
   const { top, bottom } = v;
   const backProps = useAnimatedProps(() => {
@@ -97,9 +128,20 @@ export function Vessel({ type, level, size }: { type: DrinkType; level: number; 
       <G clipPath={`url(#${id})`}>
         <AnimatedPath animatedProps={backProps} fill={back} />
         <AnimatedPath animatedProps={frontProps} fill={liquid} />
+        {fizzy && BUBBLES.map(([x, r, phase]) => <Bubble key={x} x={x} r={r} phase={phase} top={top} bottom={bottom} fill={fill} rise={rise} />)}
         <Path d={`M${v.shine} ${top + 30} V${top + (bottom - top) * 0.5}`} stroke="#FFFFFF" strokeOpacity={0.7} strokeWidth={12} strokeLinecap="round" />
       </G>
       <Path d={v.body} fill="none" stroke="#D5E1EA" strokeWidth={8} strokeLinejoin="round" />
     </Svg>
   );
+}
+
+/** One soda bubble rising from the bottom to the liquid surface, fading out near the top. */
+function Bubble({ x, r, phase, top, bottom, fill, rise }: { x: number; r: number; phase: number; top: number; bottom: number; fill: SharedValue<number>; rise: SharedValue<number> }) {
+  const props = useAnimatedProps(() => {
+    const surface = top + (bottom - top) * (1 - fill.value) + 14;
+    const t = (rise.value + phase) % 1;
+    return { cy: bottom - 12 - t * (bottom - 12 - surface), opacity: 0.85 * (1 - t * t) };
+  });
+  return <AnimatedCircle cx={x} r={r} fill="#FFFFFF" animatedProps={props} />;
 }

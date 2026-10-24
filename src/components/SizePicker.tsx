@@ -14,7 +14,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { Text } from '@/components/Text';
 import { Vessel } from '@/components/Vessel';
-import { DRINKS, fillLevel, formatMl, stepSize, type DrinkType } from '@/lib/hydration';
+import { DRINKS, fillLevel, formatMl, stepSize, type DrinkType, type MixKind } from '@/lib/hydration';
 
 const SWIPE_DISTANCE = 40;
 const SWIPE_VELOCITY = 600;
@@ -29,6 +29,9 @@ type Props = {
   /** Typed amount from the keypad, shown instead of a preset until the next step. */
   custom: number | null;
   onChange: (index: number) => void;
+  /** Presets to step through instead of the drink's own (mixed liquor: whole-glass totals). */
+  sizes?: number[];
+  mix?: MixKind;
 };
 
 /**
@@ -36,10 +39,10 @@ type Props = {
  * step between the drink's presets: snaps one step per swipe, the number slides and pops,
  * the liquid level springs, light haptic per step. VoiceOver: adjustable (swipe up/down).
  */
-export function SizePicker({ type, index, custom, onChange }: Props) {
+export function SizePicker({ type, index, custom, onChange, sizes = DRINKS[type].sizes, mix }: Props) {
   const reduce = useReducedMotion();
   const { height } = useWindowDimensions();
-  const { sizes, label } = DRINKS[type];
+  const { label } = DRINKS[type];
   const ml = custom ?? sizes[index];
   const prevI = stepSize(sizes, index, custom, -1);
   const nextI = stepSize(sizes, index, custom, 1);
@@ -105,7 +108,7 @@ export function SizePicker({ type, index, custom, onChange }: Props) {
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
         <Animated.View style={artStyle}>
-          <Vessel type={type} level={fillLevel(ml, sizes)} size={vessel} />
+          <Vessel type={type} mix={mix} level={fillLevel(ml, sizes)} size={vessel} />
         </Animated.View>
         <Animated.View style={[s.row, rowStyle]}>
           <Pressable onPress={() => step(-1)} disabled={prevI == null} hitSlop={12} style={s.side}>

@@ -21,6 +21,8 @@ import {
   DRINK_TYPES,
   DRINKS,
   entriesOn,
+  entryAmount,
+  entryLabel,
   formatDayTitle,
   formatFactor,
   formatMl,
@@ -71,7 +73,7 @@ export default function DayLog() {
     if (!pending) return;
     const entry = removeEntry(pending.id);
     setPending(null);
-    if (entry) showToast({ message: `ลบ ${DRINKS[entry.type].label} ${formatMl(entry.ml)} ml แล้ว`, undo: { kind: 'delete', entry } });
+    if (entry) showToast({ message: `ลบ ${entryLabel(entry)} ${entryAmount(entry)} แล้ว`, undo: { kind: 'delete', entry } });
   };
   const openAdd = () => {
     setMissed({ type: 'Water', ml: DRINKS.Water.ml, at: defaultMissedTime(key) });
@@ -80,7 +82,7 @@ export default function DayLog() {
   const confirmAdd = () => {
     const entry = addEntry(missed.type, missed.ml, missed.at);
     setAdding(false);
-    showToast({ message: `+${formatMl(missed.ml)} ml ${DRINKS[missed.type].label} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
+    showToast({ message: `+${entryAmount(entry)} ${entryLabel(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
   };
 
   return (
@@ -109,16 +111,24 @@ export default function DayLog() {
         <ScrollView contentContainerStyle={s.list}>
           {list.map((e) => {
             const f = DRINKS[e.type].factor;
-            const sub = caffeineOf(e) ? `คาเฟอีน ${caffeineOf(e)} mg` : f !== 1 ? `นับเป็นน้ำ ${formatFactor(f)}` : null;
+            const net = hydrationOf(e);
+            const mixed = e.mix && e.mix.kind !== 'neat';
+            const sub = caffeineOf(e)
+              ? `คาเฟอีน ${caffeineOf(e)} mg`
+              : mixed
+                ? `สุทธิ ${net > 0 ? '+' : ''}${formatMl(net)} ml`
+                : f !== 1
+                  ? `นับเป็นน้ำ ${formatFactor(f)}`
+                  : null;
             return (
               <View key={e.id} style={s.row}>
                 <DrinkArt type={e.type} width={24} />
-                <Text variant="bodyStrong" style={s.flex}>{DRINKS[e.type].label}</Text>
+                <Text variant="bodyStrong" style={s.flex}>{entryLabel(e)}</Text>
                 <View style={s.meta}>
-                  <Text variant="caption" color="muted">{`${formatTime(e.at)} • ${formatMl(e.ml)} ml`}</Text>
-                  {sub ? <Text variant="label" color={f < 0 ? 'berry' : 'muted'}>{sub}</Text> : null}
+                  <Text variant="caption" color="muted">{`${formatTime(e.at)} • ${entryAmount(e)}`}</Text>
+                  {sub ? <Text variant="label" color={net < 0 ? 'berry' : 'muted'}>{sub}</Text> : null}
                 </View>
-                <Pressable onPress={() => setPending(e)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`ลบ ${DRINKS[e.type].label}`}>
+                <Pressable onPress={() => setPending(e)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`ลบ ${entryLabel(e)}`}>
                   <SvgXml xml={MINUS} width={24} height={24} />
                 </Pressable>
               </View>
@@ -143,7 +153,7 @@ export default function DayLog() {
             <View style={s.preview}>
               <DrinkArt type={pending.type} width={28} />
               <View style={s.flex}>
-                <Text variant="bodyStrong">{`${DRINKS[pending.type].label} · ${formatMl(pending.ml)} ml`}</Text>
+                <Text variant="bodyStrong">{`${entryLabel(pending)} · ${entryAmount(pending)}`}</Text>
                 <Text variant="caption" color="muted">
                   {`${formatTime(pending.at)}${caffeineOf(pending) ? ` · คาเฟอีน ${caffeineOf(pending)} mg` : ''} · ${formatMl(hydrationOf(pending))} ml นับเป็นน้ำ`}
                 </Text>

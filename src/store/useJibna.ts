@@ -6,7 +6,9 @@ import {
   calcGoal,
   DEFAULT_PROFILE,
   type DrinkType,
+  migrateEntries,
   type Entry,
+  type Mix,
   type Profile,
 } from '@/lib/hydration';
 
@@ -42,7 +44,7 @@ type Actions = {
   setProfile: (p: Partial<Profile>) => void;
   setGoal: (ml: number, custom: boolean) => void;
   completeOnboarding: (remindersOn: boolean) => void;
-  addEntry: (type: DrinkType, ml: number, at?: number) => Entry;
+  addEntry: (type: DrinkType, ml: number, at?: number, mix?: Mix) => Entry;
   removeEntry: (id: string) => Entry | undefined;
   restoreEntry: (e: Entry) => void;
   setReminders: (r: Partial<Reminders>) => void;
@@ -82,8 +84,10 @@ export const useJibna = create<State & Actions>()(
       setGoal: (goal, goalIsCustom) => set({ goal, goalIsCustom }),
       completeOnboarding: (enabled) =>
         set((s) => ({ onboarded: true, reminders: { ...s.reminders, enabled } })),
-      addEntry: (type, ml, at = Date.now()) => {
-        const entry = { id: newId(), type, ml, at };
+      addEntry: (type, ml, at = Date.now(), mix) => {
+        const entry: Entry = { id: newId(), type, ml, at };
+        if (mix) entry.mix = mix;
+        else if (type === 'Liquor') entry.mix = { kind: 'neat', liquorMl: ml };
         set((s) => ({ entries: [...s.entries, entry] }));
         return entry;
       },
@@ -106,6 +110,12 @@ export const useJibna = create<State & Actions>()(
     }),
     {
       name: 'jibna-v1',
+      version: 1,
+      // v1: Entry.mix (liquor mixers).
+      migrate: (persisted, version) => {
+        const s = persisted as State;
+        return version < 1 ? { ...s, entries: migrateEntries(s.entries ?? []) } : s;
+      },
       storage: createJSONStorage(() => AsyncStorage),
       partialize: ({ toast, ...rest }) => rest,
     },

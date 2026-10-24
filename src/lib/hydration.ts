@@ -36,7 +36,20 @@ export const DRINKS: Record<DrinkType, Drink> = {
 
 export const DRINK_TYPES = Object.keys(DRINKS) as DrinkType[];
 
-export type Entry = { id: string; type: DrinkType; ml: number; at: number };
+export type MixKind = 'neat' | 'water' | 'soda' | 'waterSoda';
+/** Liquor only. `liquorMl` of the entry's `ml` is liquor; the rest is the mixer. */
+export type Mix = { kind: MixKind; liquorMl: number };
+
+/** Liquor mixers. Plain soda water (no sugar) counts like water. */
+export const MIXES: Record<MixKind, { label: string; mixer: string; factor: number; sizes: number[] }> = {
+  neat: { label: 'เพียว', mixer: '', factor: 0, sizes: [] },
+  water: { label: 'ผสมน้ำ', mixer: 'น้ำ', factor: 1, sizes: [150, 200, 300] },
+  soda: { label: 'ผสมโซดา', mixer: 'โซดา', factor: 1, sizes: [150, 200, 300] },
+  waterSoda: { label: 'ผสมน้ำ+โซดา', mixer: 'น้ำ+โซดา', factor: 1, sizes: [150, 200, 300] },
+};
+export const MIX_KINDS = Object.keys(MIXES) as MixKind[];
+
+export type Entry = { id: string; type: DrinkType; ml: number; at: number; mix?: Mix };
 
 export type Sex = 'female' | 'male' | 'other';
 export type Activity = 'low' | 'mid' | 'high';
@@ -80,8 +93,27 @@ export function calcGoal(p: Pick<Profile, 'weightKg' | 'activity' | 'weather'>):
 export const isValidGoal = (ml: number) => ml >= GOAL_MIN && ml <= GOAL_MAX;
 export const isValidAmount = (ml: number) => ml >= AMOUNT_MIN && ml <= AMOUNT_MAX;
 
-export function hydrationOf(e: Pick<Entry, 'type' | 'ml'>): number {
-  return e.ml * DRINKS[e.type].factor;
+export function hydrationOf(e: Pick<Entry, 'type' | 'ml' | 'mix'>): number {
+  if (!e.mix || e.mix.kind === 'neat') return e.ml * DRINKS[e.type].factor;
+  return e.mix.liquorMl * DRINKS[e.type].factor + (e.ml - e.mix.liquorMl) * MIXES[e.mix.kind].factor;
+}
+
+/** 'เหล้า ผสมโซดา' — drink name plus mixer for mixed liquor. */
+export function entryLabel(e: Pick<Entry, 'type' | 'mix'>): string {
+  const label = DRINKS[e.type].label;
+  return e.mix && e.mix.kind !== 'neat' ? `${label} ${MIXES[e.mix.kind].label}` : label;
+}
+
+/** '45+200 ml' for mixed liquor, otherwise '350 ml'. */
+export function entryAmount(e: Pick<Entry, 'ml' | 'mix'>): string {
+  return e.mix && e.mix.kind !== 'neat'
+    ? `${formatMl(e.mix.liquorMl)}+${formatMl(e.ml - e.mix.liquorMl)} ml`
+    : `${formatMl(e.ml)} ml`;
+}
+
+/** Store v0 → v1: liquor entries logged before mixers existed were neat. */
+export function migrateEntries(entries: Entry[]): Entry[] {
+  return entries.map((e) => (e.type === 'Liquor' && !e.mix ? { ...e, mix: { kind: 'neat', liquorMl: e.ml } } : e));
 }
 
 export function caffeineOf(e: Pick<Entry, 'type' | 'ml'>): number {

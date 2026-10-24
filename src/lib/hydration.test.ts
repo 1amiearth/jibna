@@ -17,6 +17,9 @@ import {
   streak,
   windowInsideWake,
   awakeMinutes,
+  entryAmount,
+  entryLabel,
+  migrateEntries,
   type Entry,
 } from './hydration.ts';
 
@@ -100,4 +103,34 @@ test('vessel fill spans 0.25–0.9 over the presets and clamps custom amounts', 
   assert.equal(fillLevel(10, sizes), 0.25);
   assert.equal(fillLevel(2000, sizes), 0.9);
   assert.equal(fillLevel(30, [30]), 0.25);
+});
+
+test('liquor mixers: liquor part dehydrates, water and soda count 100%, net = sum', () => {
+  const neat = { type: 'Liquor', ml: 45, mix: { kind: 'neat', liquorMl: 45 } } as const;
+  const soda = { type: 'Liquor', ml: 245, mix: { kind: 'soda', liquorMl: 45 } } as const;
+  const water = { type: 'Liquor', ml: 210, mix: { kind: 'water', liquorMl: 60 } } as const;
+  const both = { type: 'Liquor', ml: 330, mix: { kind: 'waterSoda', liquorMl: 30 } } as const;
+  assert.equal(hydrationOf(neat), -135);
+  assert.equal(hydrationOf(soda), 65);
+  assert.equal(hydrationOf(water), -30);
+  assert.equal(hydrationOf(both), 210);
+  // Total intake is the whole glass.
+  const t = dayTotals([{ id: 's', at: at(24, 20), ...soda }], '2026-10-24');
+  assert.equal(t.total, 245);
+  assert.equal(t.hydration, 65);
+  assert.equal(entryLabel(soda), 'เหล้า ผสมโซดา');
+  assert.equal(entryAmount(soda), '45+200 ml');
+  assert.equal(entryLabel(neat), 'เหล้า');
+  assert.equal(entryAmount(neat), '45 ml');
+});
+
+test('store v0 → v1 marks old liquor entries neat and leaves the rest alone', () => {
+  const old: Entry[] = [
+    { id: 'l', type: 'Liquor', ml: 30, at: at(24, 20) },
+    { id: 'w', type: 'Water', ml: 350, at: at(24, 9) },
+  ];
+  const [l, w] = migrateEntries(old);
+  assert.deepEqual(l.mix, { kind: 'neat', liquorMl: 30 });
+  assert.equal(hydrationOf(l), -90);
+  assert.equal(w, old[1]);
 });
