@@ -140,6 +140,11 @@ export function entryAmount(e: Pick<Entry, 'ml' | 'mix'>): string {
     : `${formatMl(e.ml)} ml`;
 }
 
+/** Added-toast text: '+350 ml น้ำเปล่า', or '+ เหล้า ผสมโซดา 45+200 ml' so the sum doesn't read as '+45+200'. */
+export function addedText(e: Pick<Entry, 'type' | 'ml' | 'mix'>): string {
+  return e.mix && e.mix.kind !== 'neat' ? `+ ${entryLabel(e)} ${entryAmount(e)}` : `+${entryAmount(e)} ${entryLabel(e)}`;
+}
+
 /** Store v0 → v1: liquor entries logged before mixers existed were neat. */
 export function migrateEntries(entries: Entry[]): Entry[] {
   return entries.map((e) => (e.type === 'Liquor' && !e.mix ? { ...e, mix: { kind: 'neat', liquorMl: e.ml } } : e));

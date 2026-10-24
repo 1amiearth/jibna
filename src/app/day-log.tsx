@@ -12,6 +12,7 @@ import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
 import { isFuture, WhenPicker } from '@/components/WhenPicker';
 import {
+  addedText,
   BACKDATE_DAYS,
   AMOUNT_MIN,
   caffeineOf,
@@ -83,7 +84,7 @@ export default function DayLog() {
   const confirmAdd = () => {
     const entry = addEntry(missed.type, missed.ml, missed.at);
     setAdding(false);
-    showToast({ message: `+${entryAmount(entry)} ${entryLabel(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
+    showToast({ message: `${addedText(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
   };
 
   return (

@@ -15,10 +15,10 @@ import { Text } from '@/components/Text';
 import { Vessel, VESSELS } from '@/components/Vessel';
 import { isFuture, WhenPicker, whenLabel } from '@/components/WhenPicker';
 import {
+  addedText,
   AMOUNT_MIN,
   DRINK_TYPES,
   DRINKS,
-  entryAmount,
   entryLabel,
   formatFactor,
   formatMl,
@@ -97,7 +97,7 @@ export default function AddDrink() {
   };
   const add = (total = ml) => {
     const entry = addEntry(type, total, at ?? undefined, mixOf(total));
-    showToast({ message: `+${entryAmount(entry)} ${entryLabel(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
+    showToast({ message: `${addedText(entry)} · ${formatTime(entry.at)}`, undo: { kind: 'add', entry } });
     router.back();
   };
   // Vessel button: next preset, wrapping back to the smallest.

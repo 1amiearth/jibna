@@ -17,6 +17,7 @@ import {
   streak,
   windowInsideWake,
   awakeMinutes,
+  addedText,
   entryAmount,
   entryLabel,
   fitWindow,
@@ -130,6 +131,8 @@ test('liquor mixers: liquor part dehydrates, water and soda count 100%, net = su
   assert.equal(entryAmount(soda), '45+200 ml');
   assert.equal(entryLabel(neat), 'เหล้า');
   assert.equal(entryAmount(neat), '45 ml');
+  assert.equal(addedText(soda), '+ เหล้า ผสมโซดา 45+200 ml');
+  assert.equal(addedText({ type: 'Water', ml: 350 }), '+350 ml น้ำเปล่า');
 });
 
 test('store v0 → v1 marks old liquor entries neat and leaves the rest alone', () => {
