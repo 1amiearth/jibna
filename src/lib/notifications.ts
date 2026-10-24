@@ -1,12 +1,11 @@
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
-import { dayKey, dayTotals, formatMl, reminderTimes, toMin } from '@/lib/hydration';
-import { useJibna, type Reminders } from '@/store/useJibna';
+import { dayKey, dayTotals, planSchedule } from '@/lib/hydration';
+import { useJibna } from '@/store/useJibna';
 
 const supported = Platform.OS !== 'web';
-const HOT_EXTRA = ['12:30', '15:30'];
 
 if (supported) {
   Notifications.setNotificationHandler({
@@ -33,19 +32,9 @@ export async function requestPermission(): Promise<boolean> {
   return p.granted;
 }
 
-/** Daily reminder times; "hot boost" adds midday nudges when the profile says it's hot. */
-export function plannedTimes(r: Reminders, hot: boolean): string[] {
-  const times = reminderTimes(r.intervalMin, r.start, r.end);
-  if (!r.hotBoost || !hot) return times;
-  const extra = HOT_EXTRA.filter(
-    (t) => toMin(t) > toMin(r.start) && toMin(t) < toMin(r.end) && times.every((x) => Math.abs(toMin(x) - toMin(t)) >= 20),
-  );
-  return [...times, ...extra].sort((a, b) => toMin(a) - toMin(b));
-}
-
 /**
- * One-shot notifications for the rest of today and tomorrow (≤ 64 on iOS).
- * Re-run on launch and whenever entries/goal/settings change, so "stop at goal" and the
+ * Replace all pending reminders with a fresh plan (see planSchedule). Re-run on launch, on
+ * foreground and whenever entries/goal/settings change, so "stop at goal" and the
  * remaining-ml copy stay current without background tasks.
  */
 async function reschedule() {
@@ -55,30 +44,24 @@ async function reschedule() {
   if (!reminders.enabled || (await getPermission()) !== 'granted') return;
 
   const now = Date.now();
-  const hydration = dayTotals(entries, dayKey(now)).hydration;
-  const remaining = Math.max(0, goal - hydration);
-  const times = plannedTimes(reminders, profile.weather !== 'normal');
-
-  for (const offset of [0, 1]) {
-    if (offset === 0 && reminders.stopAtGoal && remaining === 0) continue;
-    for (const t of times) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + offset);
-      date.setHours(Math.floor(toMin(t) / 60), toMin(t) % 60, 0, 0);
-      if (date.getTime() <= now) continue;
-      const body =
-        offset === 0 && remaining > 0
-          ? `น้องจิบเริ่มคอแห้งแล้ว ดื่มน้ำสักแก้วไหม? ยังขาดอีก ${formatMl(remaining)} ml`
-          : 'น้องจิบเริ่มคอแห้งแล้ว ดื่มน้ำสักแก้วไหม?';
-      await Notifications.scheduleNotificationAsync({
-        content: { title: 'จิบนะ', body },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
-      });
-    }
+  const remaining = Math.max(0, goal - dayTotals(entries, dayKey(now)).hydration);
+  for (const { at, body } of planSchedule(now, reminders, profile.weather !== 'normal', remaining)) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: 'จิบนะ', body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at) },
+    });
   }
 }
 
-/** Mount once at the root: keeps scheduled reminders in sync with the store. */
+// One run at a time: a later change waits for the current cancel+schedule pass to finish.
+let queue = Promise.resolve();
+function queueReschedule() {
+  queue = queue.then(reschedule).catch((e) => {
+    if (__DEV__) console.warn('[reminders] reschedule failed', e);
+  });
+}
+
+/** Mount once at the root: keeps scheduled reminders in sync with the store and app foreground. */
 export function useReminderSync(enabled: boolean) {
   const reminders = useJibna((s) => s.reminders);
   const entries = useJibna((s) => s.entries);
@@ -86,7 +69,13 @@ export function useReminderSync(enabled: boolean) {
   const weather = useJibna((s) => s.profile.weather);
   useEffect(() => {
     if (!enabled) return;
-    const t = setTimeout(() => reschedule().catch(() => {}), 500);
+    const t = setTimeout(queueReschedule, 500);
     return () => clearTimeout(t);
   }, [enabled, reminders, entries, goal, weather]);
+  // Coming back from iOS Settings (permission) or after days away: top the schedule up.
+  useEffect(() => {
+    if (!enabled) return;
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && queueReschedule());
+    return () => sub.remove();
+  }, [enabled]);
 }

@@ -10,17 +10,10 @@ import {
   type Entry,
   type Mix,
   type Profile,
+  type Reminders,
 } from '@/lib/hydration';
 
-export type Reminders = {
-  enabled: boolean;
-  intervalMin: number;
-  start: string;
-  end: string;
-  hotBoost: boolean;
-  stopAtGoal: boolean;
-  sleepMode: boolean;
-};
+export type { Reminders };
 
 export type Toast = {
   id: number;

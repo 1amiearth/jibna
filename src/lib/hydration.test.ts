@@ -20,7 +20,9 @@ import {
   entryAmount,
   entryLabel,
   migrateEntries,
+  planSchedule,
   type Entry,
+  type Reminders,
 } from './hydration.ts';
 
 const at = (d: number, h: number) => new Date(2026, 9, d, h).getTime();
@@ -133,4 +135,24 @@ test('store v0 → v1 marks old liquor entries neat and leaves the rest alone', 
   assert.deepEqual(l.mix, { kind: 'neat', liquorMl: 30 });
   assert.equal(hydrationOf(l), -90);
   assert.equal(w, old[1]);
+});
+
+test('reminder plan covers up to a week, stays under the iOS 64 limit, and respects stop-at-goal', () => {
+  const r: Reminders = { enabled: true, intervalMin: 90, start: '08:00', end: '21:00', hotBoost: true, stopAtGoal: true, sleepMode: true };
+  const now = at(24, 10); // 8 slots/day: 09:30 … 20:00
+  const plan = planSchedule(now, r, false, 500);
+  assert.equal(plan.length, 7 + 6 * 8); // 11:00…20:00 today + 6 more days
+  assert.ok(plan.every((p) => p.at > now));
+  assert.match(plan[0].body, /ยังขาดอีก 500 ml/);
+  assert.doesNotMatch(plan[plan.length - 1].body, /ยังขาดอีก/);
+  // Goal met today: skip today only.
+  assert.equal(planSchedule(now, r, false, 0).length, 6 * 8);
+  assert.equal(planSchedule(now, { ...r, stopAtGoal: false }, false, 0).length, 7 + 6 * 8);
+  // Every 30 min (26/day) only fits two days under the cap.
+  const dense = planSchedule(at(24, 7), { ...r, intervalMin: 30 }, true, 500);
+  assert.equal(dense.length, 52);
+  assert.ok(dense.length <= 64);
+  // Hot boost adds midday nudges when they aren't next to an existing slot.
+  const hourly = planSchedule(at(24, 7), { ...r, intervalMin: 120, start: '08:00', end: '20:00' }, true, 500);
+  assert.equal(hourly.filter((p) => new Date(p.at).getDate() === 24).length, 6 + 2);
 });

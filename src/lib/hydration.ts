@@ -187,6 +187,58 @@ export function windowInsideWake(start: string, end: string, wake: string, sleep
   return s < e && rel(s) <= awake && rel(e) <= awake;
 }
 
+export type Reminders = {
+  enabled: boolean;
+  intervalMin: number;
+  start: string;
+  end: string;
+  hotBoost: boolean;
+  stopAtGoal: boolean;
+  sleepMode: boolean;
+};
+
+const HOT_EXTRA = ['12:30', '15:30'];
+/** iOS keeps at most 64 pending local notifications; leave a little headroom. */
+const MAX_PENDING = 60;
+const MAX_DAYS = 7;
+
+/** Daily reminder times; "hot boost" adds midday nudges when the profile says it's hot. */
+export function plannedTimes(r: Reminders, hot: boolean): string[] {
+  const times = reminderTimes(r.intervalMin, r.start, r.end);
+  if (!r.hotBoost || !hot) return times;
+  const extra = HOT_EXTRA.filter(
+    (t) => toMin(t) > toMin(r.start) && toMin(t) < toMin(r.end) && times.every((x) => Math.abs(toMin(x) - toMin(t)) >= 20),
+  );
+  return [...times, ...extra].sort((a, b) => toMin(a) - toMin(b));
+}
+
+/**
+ * One-shot reminders for as many days ahead as fit under the iOS pending limit (up to a week),
+ * so they keep coming if the app isn't opened. Stop-at-goal and the remaining-ml copy only
+ * apply to today; later days get the generic body.
+ */
+export function planSchedule(now: number, r: Reminders, hot: boolean, remaining: number): { at: number; body: string }[] {
+  const times = plannedTimes(r, hot);
+  if (!times.length) return [];
+  const days = Math.min(MAX_DAYS, Math.max(1, Math.floor(MAX_PENDING / times.length)));
+  const out: { at: number; body: string }[] = [];
+  for (let offset = 0; offset < days; offset++) {
+    if (offset === 0 && r.stopAtGoal && remaining === 0) continue;
+    for (const t of times) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + offset);
+      d.setHours(Math.floor(toMin(t) / 60), toMin(t) % 60, 0, 0);
+      if (d.getTime() <= now) continue;
+      const body =
+        offset === 0 && remaining > 0
+          ? `น้องจิบเริ่มคอแห้งแล้ว ดื่มน้ำสักแก้วไหม? ยังขาดอีก ${formatMl(remaining)} ml`
+          : 'น้องจิบเริ่มคอแห้งแล้ว ดื่มน้ำสักแก้วไหม?';
+      out.push({ at: d.getTime(), body });
+    }
+  }
+  return out;
+}
+
 /** Reminder times: every `interval` minutes after `start`, up to and including `end`. */
 export function reminderTimes(intervalMin: number, start: string, end: string): string[] {
   const out: string[] = [];
