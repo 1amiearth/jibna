@@ -207,6 +207,19 @@ export function streak(entries: Entry[], goalFor: (key: string) => number, now: 
   return n;
 }
 
+export const DROPS_PER_GOAL_DAY = 20;
+
+/**
+ * หยดน้ำสะสม: DROPS_PER_GOAL_DAY for every day that met its goal. Derived from the log, so
+ * deleting entries can take drops back. ponytail: O(days × entries); cache per day if slow.
+ */
+export function waterDrops(entries: Entry[], goalFor: (key: string) => number): number {
+  const days = new Set(entries.map((e) => dayKey(e.at)));
+  let met = 0;
+  for (const k of days) if (dayTotals(entries, k).hydration >= goalFor(k)) met++;
+  return met * DROPS_PER_GOAL_DAY;
+}
+
 export const toMin = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;

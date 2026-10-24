@@ -7,14 +7,18 @@ import { Button } from '@/components/Button';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { formatMl } from '@/lib/hydration';
+import { DROPS_PER_GOAL_DAY, formatMl, goalOn, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
+import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
 
 /** Celebration modal, shown once per day when hydration reaches the goal (Figma 08). */
 export default function GoalReached() {
   const { width } = useWindowDimensions();
   const today = useToday();
+  const entries = useJibna((s) => s.entries);
+  const goals = useJibna((s) => s.goals);
+  const drops = waterDrops(entries, (k) => goalOn(goals, k, today.goal));
   const share = () =>
     Share.share({ message: `วันนี้ดื่มน้ำครบ ${formatMl(today.goal)} ml แล้ว! ต่อเนื่อง ${today.streak} วันกับน้องจิบ 💧` }).catch(() => {});
 
@@ -33,7 +37,7 @@ export default function GoalReached() {
         <View style={s.stats}>
           {[
             [`${today.streak} วัน`, 'ต่อเนื่อง'],
-            ['+20', 'หยดน้ำสะสม'],
+            [`+${DROPS_PER_GOAL_DAY}`, `หยดน้ำ · รวม ${formatMl(drops)}`],
             [`${today.percent}%`, 'ของเป้าหมาย'],
           ].map(([v, l]) => (
             <View key={l} style={s.stat}>

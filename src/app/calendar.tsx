@@ -7,13 +7,13 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { dayKey, dayTotals, goalOn, monthGrid, TH_MONTHS } from '@/lib/hydration';
+import { dayKey, dayTotals, formatMl, goalOn, monthGrid, TH_MONTHS, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
 
 const WEEKDAYS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
-const STREAK_REWARD_EVERY = 10;
+const STREAK_MILESTONE = 10;
 
 function Ring({ percent, size = 236 }: { percent: number; size?: number }) {
   const stroke = 18;
@@ -41,13 +41,15 @@ export default function Calendar() {
   const isCurrent = month.y === now.getFullYear() && month.m === now.getMonth();
   const shift = (d: number) => setMonth(({ y, m }) => ({ y: m + d < 0 ? y - 1 : m + d > 11 ? y + 1 : y, m: (m + d + 12) % 12 }));
   const todayKey = dayKey(now);
+  const goalFor = (k: string) => goalOn(goals, k, today.goal);
+  const drops = waterDrops(entries, goalFor);
 
   const cell = (key: string | null, i: number) => {
     if (!key) return <View key={i} style={s.cell} />;
     const day = Number(key.slice(8));
     const future = key > todayKey;
     const h = dayTotals(entries, key).hydration;
-    const met = h >= goalOn(goals, key, today.goal);
+    const met = h >= goalFor(key);
     const isToday = key === todayKey;
     const bg = isToday ? colors.ink : met ? colors.water : h > 0 ? colors.waterPale : 'transparent';
     const fg = isToday || met ? 'bg' : h > 0 ? 'water' : future ? 'divider' : 'muted';
@@ -104,8 +106,8 @@ export default function Calendar() {
           <Text variant="title">{today.streak ? `ดื่มครบต่อเนื่อง ${today.streak} วัน!` : 'เริ่มสถิติใหม่วันนี้'}</Text>
           <Text variant="label" color="muted">
             {today.streak
-              ? `อีก ${STREAK_REWARD_EVERY - (today.streak % STREAK_REWARD_EVERY)} วัน ปลดล็อกชุดสงกรานต์ให้น้องจิบ`
-              : 'ดื่มให้ครบเป้าวันนี้ เพื่อเริ่มนับวันต่อเนื่อง'}
+              ? `อีก ${STREAK_MILESTONE - (today.streak % STREAK_MILESTONE)} วัน ครบ ${(Math.floor(today.streak / STREAK_MILESTONE) + 1) * STREAK_MILESTONE} วันติด · หยดน้ำสะสม ${formatMl(drops)}`
+              : `ดื่มให้ครบเป้าวันนี้ เพื่อเริ่มนับวันต่อเนื่อง · หยดน้ำสะสม ${formatMl(drops)}`}
           </Text>
         </View>
       </View>

@@ -21,6 +21,7 @@ import {
   entryLabel,
   goalOn,
   migrateEntries,
+  waterDrops,
   withGoal,
   planSchedule,
   type Entry,
@@ -171,4 +172,12 @@ test('goal history: raising the goal today keeps past days (and the streak) unde
   assert.equal(streak([full(21), full(22), full(23)], g, at(24, 9)), 3);
   // Changing it twice the same day keeps one record for that day.
   assert.deepEqual(withGoal(log, '2026-10-24', 2800), [{ from: '', ml: 2300 }, { from: '2026-10-24', ml: 2800 }]);
+});
+
+test('water drops: 20 per day that met its own goal', () => {
+  const e = (d: number, ml: number): Entry => ({ id: `w${d}`, type: 'Water', ml, at: at(d, 12) });
+  const log = withGoal([{ from: '', ml: 2000 }], '2026-10-24', 3000);
+  const g = (k: string) => goalOn(log, k, 3000);
+  assert.equal(waterDrops([e(22, 2000), e(23, 1500), e(24, 2500)], g), 20); // 24th misses the new 3,000
+  assert.equal(waterDrops([], g), 0);
 });
