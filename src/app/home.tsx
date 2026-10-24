@@ -14,8 +14,9 @@ import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
 
+// r=12 + 2px stroke ends at 13, inside the 26 viewBox (r=13 clipped the ring flat on every side).
 const CHECK = (done: boolean) =>
-  `<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="${done ? '#5CC9A7' : '#FFFFFF'}" stroke="#5CC9A7" stroke-width="${done ? 0 : 2}"/><path d="M8 13.5l3.2 3.2L18 10" fill="none" stroke="${done ? '#FFFFFF' : '#5CC9A7'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  `<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="${done ? '#5CC9A7' : '#FFFFFF'}" stroke="#5CC9A7" stroke-width="2"/><path d="M8 13.5l3.2 3.2L18 10" fill="none" stroke="${done ? '#FFFFFF' : '#5CC9A7'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function StreakBadge({ count, onPress }: { count: number; onPress: () => void }) {
   return (
