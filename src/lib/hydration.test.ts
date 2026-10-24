@@ -317,3 +317,23 @@ test('backup round-trips and rejects anything that is not a valid Jibna backup',
 test('Buddhist-era year', () => {
   assert.equal(thaiYear(2026), 2569);
 });
+
+test('reminder window: overnight sleep and inverted windows', () => {
+  // Sleep after midnight: awake 10:00–02:00.
+  assert.equal(windowInsideWake('11:00', '23:30', '10:00', '02:00'), true);
+  assert.equal(windowInsideWake('09:00', '23:30', '10:00', '02:00'), false); // before waking
+  assert.equal(windowInsideWake('21:00', '08:00', '07:00', '23:00'), false); // start after end
+  assert.equal(windowInsideWake('08:00', '08:00', '07:00', '23:00'), false); // empty window
+  assert.equal(awakeMinutes('23:30', '08:00'), 510); // night shift
+});
+
+test('month grid: Monday first, weeks padded, leap February', () => {
+  const jun = monthGrid(2026, 5); // 1 June 2026 is a Monday
+  assert.equal(jun[0][0], '2026-06-01');
+  const mar = monthGrid(2026, 2); // 1 March 2026 is a Sunday: six leading blanks
+  assert.deepEqual(mar[0].slice(0, 7), [null, null, null, null, null, null, '2026-03-01']);
+  assert.equal(mar.length, 6);
+  assert.ok(monthGrid(2028, 1).flat().includes('2028-02-29'));
+  assert.ok(!monthGrid(2026, 1).flat().includes('2026-02-29'));
+  assert.ok(monthGrid(2026, 9).every((w) => w.length === 7));
+});
