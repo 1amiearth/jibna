@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
@@ -68,6 +69,8 @@ const DROP_FROM = -520;
  */
 export function PlayfulMascot({ percent, width, reaction, welcome = false }: Props) {
   const reduce = useReducedMotion();
+  // Home/Welcome stay mounted under pushed screens and modals: stop the idle loops while covered.
+  const focused = useIsFocused();
   const k = width / 324;
   const height = (width * 405) / 324;
   const [dizzy, setDizzy] = useState(false);
@@ -123,13 +126,17 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
       slosh.set(0.5);
       return;
     }
+    if (!focused) {
+      loops.forEach((v) => cancelAnimation(v));
+      return;
+    }
     const ease = Easing.inOut(Easing.sin);
     breath.set(withRepeat(withTiming(1, { duration: 1600, easing: ease }), -1, true));
     sway.set(withRepeat(withTiming(1, { duration: 2300, easing: ease }), -1, true));
     slosh.set(withRepeat(withTiming(1, { duration: 1900, easing: ease }), -1, true));
     twinkle.set(withRepeat(withTiming(1, { duration: 1400, easing: Easing.linear }), -1, false));
     orbit.set(withRepeat(withTiming(1, { duration: 1800, easing: Easing.linear }), -1, false));
-  }, [reduce, breath, sway, slosh, twinkle, orbit]);
+  }, [reduce, focused, breath, sway, slosh, twinkle, orbit]);
 
   // Welcome: fall in from above, land with a squash, then keep waving.
   useEffect(() => {
@@ -145,9 +152,21 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [welcome, reduce]);
 
+  // Welcome's waving arm loops too: stop while covered, resume when back (the first start is above).
+  const blurred = useRef(false);
+  useEffect(() => {
+    if (!welcome || reduce) return;
+    if (!focused) {
+      blurred.current = true;
+      cancelAnimation(waveL);
+    } else if (blurred.current) {
+      waveL.set(withRepeat(withSequence(withTiming(-16, { duration: 260 }), withTiming(14, { duration: 260 })), -1, true));
+    }
+  }, [welcome, reduce, focused, waveL]);
+
   // Random blink every 3–6 s.
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || !focused) return;
     let t: ReturnType<typeof setTimeout>;
     const next = () => {
       t = setTimeout(() => {
@@ -157,7 +176,7 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
     };
     next();
     return () => clearTimeout(t);
-  }, [reduce, blink]);
+  }, [reduce, focused, blink]);
 
   const jump = (h: number, delay = 0) => {
     squash.set(withDelay(delay, withSequence(
