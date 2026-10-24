@@ -12,7 +12,6 @@ import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
 import { isFuture, WhenPicker } from '@/components/WhenPicker';
 import {
-  AMOUNT_MAX,
   BACKDATE_DAYS,
   AMOUNT_MIN,
   caffeineOf,
@@ -179,7 +178,7 @@ export default function DayLog() {
             <Text variant="title" color="water">−</Text>
           </Pressable>
           <Text variant="bodyStrong" color="water" style={s.amountValue}>{`${formatMl(missed.ml)} ml`}</Text>
-          <Pressable onPress={() => setMissed({ ...missed, ml: Math.min(AMOUNT_MAX, missed.ml + STEP) })} hitSlop={8} accessibilityLabel="เพิ่ม 50 ml" style={s.stepBtn}>
+          <Pressable onPress={() => setMissed({ ...missed, ml: Math.min(DRINKS[missed.type].maxMl, missed.ml + STEP) })} hitSlop={8} accessibilityLabel="เพิ่ม 50 ml" style={s.stepBtn}>
             <Text variant="title" color="water">+</Text>
           </Pressable>
         </View>

@@ -15,7 +15,6 @@ import { Text } from '@/components/Text';
 import { Vessel, VESSELS } from '@/components/Vessel';
 import { isFuture, WhenPicker, whenLabel } from '@/components/WhenPicker';
 import {
-  AMOUNT_MAX,
   AMOUNT_MIN,
   DRINK_TYPES,
   DRINKS,
@@ -27,6 +26,7 @@ import {
   formatTime,
   hydrationOf,
   MIX_KINDS,
+  MIXER_MAX_ML,
   MIXES,
   stepSize,
   type DrinkType,
@@ -68,7 +68,7 @@ export default function AddDrink() {
     isLiquor ? { kind: mixKind, liquorMl: mixed ? shotMl : total } : undefined;
   const preview = { type, ml, mix: mixOf(ml) };
   const delta = hydrationOf(preview);
-  const alcohol = drink.factor < 0;
+  const alcohol = drink.abv != null;
   const negative = delta < 0;
 
   const chooseType = (t: DrinkType) => {
@@ -107,7 +107,7 @@ export default function AddDrink() {
   };
 
   const mixer = MIXES[mixKind].mixer;
-  const amountMax = mixed ? AMOUNT_MAX - shotMl : AMOUNT_MAX;
+  const amountMax = mixed ? MIXER_MAX_ML : drink.maxMl;
 
   return (
     <Screen style={s.content}>
@@ -173,7 +173,9 @@ export default function AddDrink() {
           {`เหล้า ${shotMl} ml (${signed(shotMl * LIQUOR.factor)}) + ${mixer} ${formatMl(ml - shotMl)} ml (+${formatMl(ml - shotMl)}) = สุทธิ ${signed(delta)} ml`}
         </Text>
       ) : alcohol ? (
-        <Text variant="caption" color="berry" align="center">{`= ${formatMl(delta)} ml จากยอดน้ำวันนี้`}</Text>
+        <Text variant="caption" color={negative ? 'berry' : 'mint'} align="center">
+          {`${drink.label} ${formatMl(ml)} ml = ${signed(delta)} ml ต่อยอดน้ำวันนี้ (หักน้ำที่เสียจากแอลกอฮอล์แล้ว)`}
+        </Text>
       ) : (
         <Text variant="caption" color="muted" align="center">
           {at == null ? 'ปัดซ้าย–ขวาเพื่อเปลี่ยนขนาดแก้ว' : `บันทึกเป็นเวลา ${whenLabel(at)}`}
@@ -205,7 +207,7 @@ export default function AddDrink() {
       <Sheet visible={sheets.is('more')} title="เลือกเครื่องดื่ม" cancelLabel="ปิด" onCancel={sheets.close}>
         <DrinkGrid selected={type} onSelect={chooseType} />
         <Text variant="caption" color="muted" align="center" style={s.legend}>
-          % = สัดส่วนที่นับเป็นน้ำ · ค่าติดลบ (สีชมพู) = แอลกอฮอล์ ทำให้ร่างกายเสียน้ำ ยอดรวมวันไม่ต่ำกว่า 0
+          % = สัดส่วนที่นับเป็นน้ำ · เครื่องดื่มแอลกอฮอล์หักน้ำที่เสียไปแล้ว ค่าติดลบ (สีชมพู) = เสียน้ำมากกว่าที่ได้ · ยอดรวมวันไม่ต่ำกว่า 0
         </Text>
         <View style={s.stretch}>
           <RowGroup>
@@ -232,7 +234,7 @@ export default function AddDrink() {
         hint={
           mixed
             ? `เหล้า ${shotMl} ml + ${mixer} · ${AMOUNT_MIN}–${formatMl(amountMax)} ml`
-            : `${drink.label} · นับเป็นน้ำ ${formatFactor(drink.factor)} · ${AMOUNT_MIN}–${formatMl(AMOUNT_MAX)} ml ต่อครั้ง`
+            : `${drink.label} · นับเป็นน้ำ ${formatFactor(drink.factor)} · ${AMOUNT_MIN}–${formatMl(amountMax)} ml ต่อครั้ง`
         }
         validate={amountError(amountMax)}
         confirmLabel={(n) =>

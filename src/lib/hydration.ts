@@ -14,25 +14,54 @@ export type Drink = {
   label: string;
   /** Default serving in ml. */
   ml: number;
-  /** Share of volume counted as water. Negative = dehydrating (alcohol). */
+  /** Net hydration per ml counted toward the goal. Negative = loses more water than it gives. */
   factor: number;
   /** Swipeable serving sizes on Add Drink; `ml` is one of them. */
   sizes: number[];
+  /** Largest single entry. For liquor this is the liquor itself; mixers have MIXER_MAX_ML. */
+  maxMl: number;
+  /** Alcohol by volume (0–1); set only for alcoholic drinks. */
+  abv?: number;
   caffeineMgPerMl?: number;
 };
 
-// Values from the Figma Drink Chip description. Alcohol factor ≈ −10 ml per gram of
-// alcohol with the drink's own water not credited — a product decision pending review.
+/** Diuresis: about 10 ml of extra urine per gram of alcohol. */
+const ML_LOST_PER_G_ALCOHOL = 10;
+const ETHANOL_G_PER_ML = 0.789;
+/** Alcoholic drinks: their own water content minus the water lost to their alcohol, per ml. */
+export const alcoholFactor = (abv: number, waterShare: number) => waterShare - ML_LOST_PER_G_ALCOHOL * ETHANOL_G_PER_ML * abv;
+
+/*
+ * Hydration values (net ml counted toward the daily goal). Non-alcoholic shares come from the
+ * Figma Drink Chip descriptions. Every alcoholic drink uses one formula:
+ *   net = ml × water share − 10 ml × grams of alcohol,  grams = ml × ABV × 0.789
+ * Product values pending nutrition review; not medical advice.
+ *
+ *   Drink        serving  factor   net / serving   max per entry
+ *   น้ำเปล่า       350 ml   100%     +350            2,000 ml
+ *   ชาไทย          250 ml    80%     +200            1,000 ml
+ *   ชาเขียว         300 ml    95%     +285            1,000 ml
+ *   กาแฟ           200 ml    80%     +160            1,000 ml
+ *   นม             200 ml    90%     +180            1,000 ml
+ *   น้ำมะพร้าว      400 ml   100%     +400            1,000 ml
+ *   เบียร์ 5%       320 ml   ≈+54%    ≈+171           1,500 ml   (water 93%, 12.6 g alcohol)
+ *   เหล้า 40%        30 ml   ≈−256%   ≈−77 neat         300 ml   (water 60%, 9.5 g alcohol)
+ *   mixer (น้ำ/โซดา)  +ml     100%     +ml             1,000 ml   (plain soda water, no sugar)
+ *   e.g. เหล้า 45 + โซดา 200 ≈ −115 + 200 = +85
+ */
 export const DRINKS: Record<DrinkType, Drink> = {
-  Water: { label: 'น้ำเปล่า', ml: 350, factor: 1, sizes: [250, 350, 500] },
-  ThaiTea: { label: 'ชาไทย', ml: 250, factor: 0.8, sizes: [200, 250, 350] },
-  GreenTea: { label: 'ชาเขียว', ml: 300, factor: 0.95, sizes: [200, 300, 400], caffeineMgPerMl: 0.1 },
-  Coffee: { label: 'กาแฟ', ml: 200, factor: 0.8, sizes: [150, 200, 350], caffeineMgPerMl: 0.475 },
-  Milk: { label: 'นม', ml: 200, factor: 0.9, sizes: [200, 250, 400] },
-  Coconut: { label: 'น้ำมะพร้าว', ml: 400, factor: 1, sizes: [250, 400, 500] },
-  Beer: { label: 'เบียร์', ml: 320, factor: -0.4, sizes: [320, 490, 620] },
-  Liquor: { label: 'เหล้า', ml: 30, factor: -3, sizes: [30, 45, 60] },
+  Water: { label: 'น้ำเปล่า', ml: 350, factor: 1, sizes: [250, 350, 500], maxMl: 2000 },
+  ThaiTea: { label: 'ชาไทย', ml: 250, factor: 0.8, sizes: [200, 250, 350], maxMl: 1000 },
+  GreenTea: { label: 'ชาเขียว', ml: 300, factor: 0.95, sizes: [200, 300, 400], maxMl: 1000, caffeineMgPerMl: 0.1 },
+  Coffee: { label: 'กาแฟ', ml: 200, factor: 0.8, sizes: [150, 200, 350], maxMl: 1000, caffeineMgPerMl: 0.475 },
+  Milk: { label: 'นม', ml: 200, factor: 0.9, sizes: [200, 250, 400], maxMl: 1000 },
+  Coconut: { label: 'น้ำมะพร้าว', ml: 400, factor: 1, sizes: [250, 400, 500], maxMl: 1000 },
+  Beer: { label: 'เบียร์', ml: 320, factor: alcoholFactor(0.05, 0.93), abv: 0.05, sizes: [320, 490, 620], maxMl: 1500 },
+  Liquor: { label: 'เหล้า', ml: 30, factor: alcoholFactor(0.4, 0.6), abv: 0.4, sizes: [30, 45, 60], maxMl: 300 },
 };
+
+export const MIXER_MAX_ML = 1000;
+export const isAlcohol = (t: DrinkType) => (DRINKS[t].abv ?? 0) > 0;
 
 export const DRINK_TYPES = Object.keys(DRINKS) as DrinkType[];
 

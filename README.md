@@ -27,7 +27,7 @@ npx expo-doctor
   calendar, reminders, goal-reached, settings, edit-goal.
 - `src/components/` Figma components: Button, IconButton, Row/Toggle, Option, Sheet, Toast, Keypad,
   DrinkChip, Mascot/HydrationMascot, Wheel.
-- `src/lib/hydration.ts` goal formula, drink table with hydration factors (Beer −40%, Liquor −300%),
+- `src/lib/hydration.ts` goal formula, drink table with hydration factors (one ABV formula for beer/liquor, see the table in the file),
   day totals (never below 0), streak, reminder times.
 - `src/store/useJibna.ts` zustand store persisted to AsyncStorage.
 - `src/assets/svg.ts` SVGs exported from Figma.

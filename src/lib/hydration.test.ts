@@ -48,11 +48,13 @@ test('Figma day log totals', () => {
   assert.equal(afterDelete.hydration, 1300);
 });
 
-test('alcohol dehydrates and the day never goes below 0', () => {
-  assert.equal(hydrationOf({ type: 'Beer', ml: 320 }), -128);
-  assert.equal(hydrationOf({ type: 'Liquor', ml: 30 }), -90);
+test('alcohol: one ABV formula, water content minus 10 ml per gram; the day never goes below 0', () => {
+  assert.equal(Math.round(hydrationOf({ type: 'Beer', ml: 320 })), 171);
+  assert.equal(Math.round(hydrationOf({ type: 'Liquor', ml: 30 })), -77);
+  assert.equal(Math.round(hydrationOf({ type: 'Liquor', ml: 60 })), -153);
   const t = dayTotals([{ id: 'b', type: 'Liquor', ml: 60, at: at(24, 20) }], '2026-10-24');
   assert.equal(t.hydration, 0);
+  assert.equal(t.total, 60);
 });
 
 test('streak counts back from today, or yesterday if today not met yet', () => {
@@ -112,14 +114,14 @@ test('liquor mixers: liquor part dehydrates, water and soda count 100%, net = su
   const soda = { type: 'Liquor', ml: 245, mix: { kind: 'soda', liquorMl: 45 } } as const;
   const water = { type: 'Liquor', ml: 210, mix: { kind: 'water', liquorMl: 60 } } as const;
   const both = { type: 'Liquor', ml: 330, mix: { kind: 'waterSoda', liquorMl: 30 } } as const;
-  assert.equal(hydrationOf(neat), -135);
-  assert.equal(hydrationOf(soda), 65);
-  assert.equal(hydrationOf(water), -30);
-  assert.equal(hydrationOf(both), 210);
+  assert.equal(Math.round(hydrationOf(neat)), -115);
+  assert.equal(Math.round(hydrationOf(soda)), 85);
+  assert.equal(Math.round(hydrationOf(water)), -3);
+  assert.equal(Math.round(hydrationOf(both)), 223);
   // Total intake is the whole glass.
   const t = dayTotals([{ id: 's', at: at(24, 20), ...soda }], '2026-10-24');
   assert.equal(t.total, 245);
-  assert.equal(t.hydration, 65);
+  assert.equal(t.hydration, 85);
   assert.equal(entryLabel(soda), 'เหล้า ผสมโซดา');
   assert.equal(entryAmount(soda), '45+200 ml');
   assert.equal(entryLabel(neat), 'เหล้า');
@@ -133,7 +135,7 @@ test('store v0 → v1 marks old liquor entries neat and leaves the rest alone', 
   ];
   const [l, w] = migrateEntries(old);
   assert.deepEqual(l.mix, { kind: 'neat', liquorMl: 30 });
-  assert.equal(hydrationOf(l), -90);
+  assert.equal(Math.round(hydrationOf(l)), -77);
   assert.equal(w, old[1]);
 });
 
