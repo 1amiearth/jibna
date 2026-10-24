@@ -23,8 +23,11 @@ export function ErrorNote({ children }: { children: string }) {
 type Props = {
   visible: boolean;
   title: string;
+  /** Starting value; 0 opens an empty field. */
   initial: number;
   hint: string;
+  /** Below this the confirm button just stays disabled (no error while the user is still typing). */
+  min?: number;
   /** Returns an error message when the value is out of range, or null. */
   validate: (n: number) => string | null;
   confirmLabel: (n: number) => string;
@@ -43,14 +46,14 @@ export function AmountSheet({ visible, title, onCancel, ...body }: Props) {
   );
 }
 
-function AmountBody({ initial, hint, validate, confirmLabel, confirmKind = 'Water', onConfirm }: Omit<Props, 'visible' | 'title' | 'onCancel'>) {
-  const [digits, setDigits] = useState(String(initial));
+function AmountBody({ initial, hint, min = 0, validate, confirmLabel, confirmKind = 'Water', onConfirm }: Omit<Props, 'visible' | 'title' | 'onCancel'>) {
+  const [digits, setDigits] = useState(initial ? String(initial) : '');
   const n = Number(digits || 0);
   const error = digits ? validate(n) : null;
   return (
     <>
       <View style={s.display}>
-        <Text variant="display" color={error ? 'berry' : 'water'}>{formatMl(n)}</Text>
+        <Text variant="display" color={error ? 'berry' : digits ? 'water' : 'chevron'}>{formatMl(n)}</Text>
         <Text variant="title" color="muted">ml</Text>
       </View>
       {error ? <ErrorNote>{error}</ErrorNote> : <Text variant="caption" color="muted" align="center">{hint}</Text>}
@@ -58,7 +61,7 @@ function AmountBody({ initial, hint, validate, confirmLabel, confirmKind = 'Wate
       <Button
         label={confirmLabel(n)}
         kind={confirmKind}
-        disabled={!digits || !!error}
+        disabled={!digits || !!error || n < min}
         onPress={() => onConfirm(n)}
         style={s.full}
       />

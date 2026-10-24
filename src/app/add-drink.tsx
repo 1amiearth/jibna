@@ -31,8 +31,7 @@ import { useSheets } from '@/lib/useSheets';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
 
-const amountError = (n: number) =>
-  n > AMOUNT_MAX ? `สูงสุด ${formatMl(AMOUNT_MAX)} ml ต่อครั้ง — แบ่งบันทึกเป็นหลายแก้วได้` : n < AMOUNT_MIN ? `ขั้นต่ำ ${AMOUNT_MIN} ml` : null;
+const amountError = (n: number) => (n > AMOUNT_MAX ? `สูงสุด ${formatMl(AMOUNT_MAX)} ml ต่อครั้ง — แบ่งบันทึกเป็นหลายแก้วได้` : null);
 
 export default function AddDrink() {
   const params = useLocalSearchParams<{ type?: string }>();
@@ -142,10 +141,11 @@ export default function AddDrink() {
       <AmountSheet
         visible={sheets.is('amount')}
         title="กำหนดปริมาณเอง"
-        initial={ml}
+        initial={0}
+        min={AMOUNT_MIN}
         hint={`${drink.label} · นับเป็นน้ำ ${formatFactor(drink.factor)} · ${AMOUNT_MIN}–${formatMl(AMOUNT_MAX)} ml ต่อครั้ง`}
         validate={amountError}
-        confirmLabel={(n) => `+ ${formatMl(n)} ml ${drink.label}`}
+        confirmLabel={(n) => (n ? `+ ${formatMl(n)} ml ${drink.label}` : `+ ${drink.label}`)}
         onConfirm={(n) => {
           sheets.close();
           add(n);
