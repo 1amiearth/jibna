@@ -295,6 +295,21 @@ export function planSchedule(now: number, r: Reminders, hot: boolean, remaining:
   return out;
 }
 
+/**
+ * Keep the reminder window inside wake hours after wake/sleep change: unchanged if it still
+ * fits, otherwise reset to 1 h after waking until 2 h before sleep (no later than 23:30,
+ * since the window can't cross midnight).
+ */
+export function fitWindow(w: { start: string; end: string }, wake: string, sleep: string): { start: string; end: string } {
+  if (windowInsideWake(w.start, w.end, wake, sleep)) return w;
+  const awake = awakeMinutes(wake, sleep);
+  const s = (toMin(wake) + 60) % 1440;
+  let e = (toMin(wake) + awake - 120) % 1440;
+  if (e <= s) e = 23 * 60 + 30;
+  const fitted = { start: fromMin(s), end: fromMin(e) };
+  return windowInsideWake(fitted.start, fitted.end, wake, sleep) ? fitted : w;
+}
+
 /** Reminder times: every `interval` minutes after `start`, up to and including `end`. */
 export function reminderTimes(intervalMin: number, start: string, end: string): string[] {
   const out: string[] = [];

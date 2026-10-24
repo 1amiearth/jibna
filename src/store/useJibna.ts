@@ -6,6 +6,7 @@ import {
   calcGoal,
   dayKey,
   DEFAULT_PROFILE,
+  fitWindow,
   type DrinkType,
   migrateEntries,
   withGoal,
@@ -78,7 +79,20 @@ export const useJibna = create<State & Actions>()(
         set((s) => {
           const profile = { ...s.profile, ...p };
           const goal = s.goalIsCustom ? s.goal : calcGoal(profile);
-          return { profile, goal, goals: goal === s.goal ? s.goals : withGoal(s.goals, dayKey(Date.now()), goal) };
+          // New wake/sleep can leave the saved reminder window outside wake hours: refit it.
+          const window = fitWindow(s.reminders, profile.wake, profile.sleep);
+          const moved = window.start !== s.reminders.start || window.end !== s.reminders.end;
+          return {
+            profile,
+            goal,
+            goals: goal === s.goal ? s.goals : withGoal(s.goals, dayKey(Date.now()), goal),
+            ...(moved && {
+              reminders: { ...s.reminders, ...window },
+              toast: s.reminders.enabled
+                ? { id: Date.now(), message: `ปรับช่วงเตือนเป็น ${window.start}–${window.end} ให้อยู่ในช่วงตื่น` }
+                : s.toast,
+            }),
+          };
         }),
       setGoal: (goal, goalIsCustom) =>
         set((s) => ({ goal, goalIsCustom, goals: goal === s.goal ? s.goals : withGoal(s.goals, dayKey(Date.now()), goal) })),

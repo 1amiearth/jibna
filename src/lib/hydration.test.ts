@@ -19,6 +19,7 @@ import {
   awakeMinutes,
   entryAmount,
   entryLabel,
+  fitWindow,
   goalOn,
   migrateEntries,
   waterDrops,
@@ -180,4 +181,13 @@ test('water drops: 20 per day that met its own goal', () => {
   const g = (k: string) => goalOn(log, k, 3000);
   assert.equal(waterDrops([e(22, 2000), e(23, 1500), e(24, 2500)], g), 20); // 24th misses the new 3,000
   assert.equal(waterDrops([], g), 0);
+});
+
+test('reminder window is pulled back inside wake hours when wake/sleep change', () => {
+  const w = { start: '08:00', end: '21:00' };
+  assert.equal(fitWindow(w, '07:00', '23:00'), w); // still fits: same object
+  assert.deepEqual(fitWindow(w, '09:00', '23:00'), { start: '10:00', end: '21:00' });
+  assert.deepEqual(fitWindow(w, '10:00', '02:00'), { start: '11:00', end: '23:30' }); // sleep after midnight
+  assert.deepEqual(fitWindow(w, '23:30', '08:00'), { start: '00:30', end: '06:00' }); // night shift
+  assert.deepEqual(fitWindow({ start: '08:00', end: '22:30' }, '07:00', '22:00'), { start: '08:00', end: '20:00' });
 });
