@@ -7,10 +7,11 @@ import { colors, layout } from '@/theme/tokens';
 const CHEVRON = '<svg width="8" height="14" viewBox="0 0 8 14"><path d="M2 2l5 5.5L2 13" fill="none" stroke="#B5C0CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /** Figma: Toggle. On = mint track, Off = divider track. */
-export function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function Toggle({ value, onChange, disabled, label }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
   return (
     <Pressable
       accessibilityRole="switch"
+      accessibilityLabel={label}
       accessibilityState={{ checked: value, disabled }}
       disabled={disabled}
       onPress={() => onChange(!value)}

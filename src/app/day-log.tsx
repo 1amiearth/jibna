@@ -19,7 +19,7 @@ import {
   caffeineOf,
   dayKey,
   dayTotals,
-  DRINK_TYPES,
+  drinkOrder,
   DRINKS,
   entriesOn,
   entryAmount,
@@ -66,6 +66,7 @@ export default function DayLog() {
   const canBackdate = (now - fromKey(key).getTime()) / 86400000 < BACKDATE_DAYS + 1;
   const entries = useJibna((s) => s.entries);
   const goals = useJibna((s) => s.goals);
+  const order = drinkOrder(useJibna((s) => s.drinkOrder));
   const goal = goalOn(goals, key, useJibna((s) => s.goal)); // that day's goal
   const removeEntry = useJibna((s) => s.removeEntry);
   const addEntry = useJibna((s) => s.addEntry);
@@ -184,7 +185,7 @@ export default function DayLog() {
 
       <Sheet visible={adding} title="เพิ่มย้อนหลัง" doneLabel="เพิ่ม" onCancel={() => setAdding(false)} onDone={confirmAdd} doneDisabled={isFuture(missed.at)}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.chipsWrap}>
-          {DRINK_TYPES.map((t) => (
+          {order.map((t) => (
             <DrinkChip key={t} type={t} showAdd={false} selected={missed.type === t} onPress={() => setMissed({ ...missed, type: t, ml: DRINKS[t].ml, mix: 'neat' })} />
           ))}
         </ScrollView>

@@ -17,6 +17,7 @@ export default function Settings() {
   const goal = useJibna((s) => s.goal);
   const custom = useJibna((s) => s.goalIsCustom);
   const r = useJibna((s) => s.reminders);
+  const hiddenCount = useJibna((s) => s.hiddenDrinks.length);
 
   return (
     <Screen scroll style={s.content}>
@@ -40,7 +41,7 @@ export default function Settings() {
         <RowGroup>
           <Row label="ข้อมูลร่างกาย" onPress={() => router.push({ pathname: '/onboarding/goal-setup', params: { from: 'settings' } })} />
           <Row label="การเตือน" value={r.enabled ? `ทุก ${intervalLabel(r.intervalMin)}` : 'ปิด'} onPress={() => router.push('/reminders')} />
-          <Row label="เครื่องดื่ม" value={`${DRINK_TYPES.length} รายการ`} chevron={false} />
+          <Row label="เครื่องดื่ม" value={`แสดง ${DRINK_TYPES.length - hiddenCount}/${DRINK_TYPES.length}`} onPress={() => router.push('/drinks')} />
           <Row label="ภาษา" value="ไทย" chevron={false} divider={false} />
         </RowGroup>
       </View>

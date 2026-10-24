@@ -25,6 +25,9 @@ import {
   fitWindow,
   goalOn,
   caffeineOf,
+  drinkOrder,
+  homeDrinks,
+  moveDrink,
   CHALLENGES,
   challengeFor,
   challengeProgress,
@@ -239,4 +242,15 @@ test('daily challenge rotates by day and counts only that day, never alcohol', (
   const glasses = [8, 10, 12, 14, 16, 18].map((h): Entry => ({ id: `g${h}`, type: 'Water', ml: 250, at: at(d, h) }));
   assert.deepEqual(challengeProgress([...glasses, { id: 'x', type: 'Water', ml: 250, at: at(d - 1, 9) }], waterDay, 2300).done, 4);
   assert.equal(challengeProgress(glasses.slice(0, 1), waterDay, 2300).done, 1);
+});
+
+test('drinks list: order is repaired, hidden drinks leave Home, never empty', () => {
+  assert.deepEqual(drinkOrder(['Beer', 'Water', 'Bogus', 'Beer']).slice(0, 3), ['Beer', 'Water', 'ThaiTea']);
+  assert.equal(drinkOrder([]).length, 8);
+  assert.deepEqual(homeDrinks(['Coffee', 'Water'], ['Water', 'Liquor']).slice(0, 2), ['Coffee', 'ThaiTea']);
+  assert.ok(!homeDrinks([], ['Liquor']).includes('Liquor'));
+  const all = drinkOrder([]);
+  assert.deepEqual(homeDrinks([], all), ['Water']);
+  assert.deepEqual(moveDrink(['Water', 'Coffee', 'Beer'], 'Beer', -1), ['Water', 'Beer', 'Coffee']);
+  assert.deepEqual(moveDrink(['Water', 'Coffee'], 'Water', -1), ['Water', 'Coffee']);
 });

@@ -64,6 +64,28 @@ export const DRINKS: Record<DrinkType, Drink> = {
 };
 
 export const MIXER_MAX_ML = 1000;
+
+/** User's drink order, made safe: unknown types dropped, types added in a later version appended. */
+export function drinkOrder(saved: readonly string[]): DrinkType[] {
+  const known = saved.filter((t, i): t is DrinkType => DRINK_TYPES.includes(t as DrinkType) && saved.indexOf(t) === i);
+  return [...known, ...DRINK_TYPES.filter((t) => !known.includes(t))];
+}
+
+/** Drinks on Home's quick-add row, in the user's order. Never empty: water stays if all are hidden. */
+export function homeDrinks(saved: readonly string[], hidden: readonly string[]): DrinkType[] {
+  const shown = drinkOrder(saved).filter((t) => !hidden.includes(t));
+  return shown.length ? shown : ['Water'];
+}
+
+/** Move `t` one step up (-1) or down (+1) in the order. */
+export function moveDrink(order: DrinkType[], t: DrinkType, dir: 1 | -1): DrinkType[] {
+  const i = order.indexOf(t);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= order.length) return order;
+  const next = [...order];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
 export const isAlcohol = (t: DrinkType) => (DRINKS[t].abv ?? 0) > 0;
 
 export const DRINK_TYPES = Object.keys(DRINKS) as DrinkType[];

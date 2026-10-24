@@ -6,6 +6,8 @@ import {
   calcGoal,
   dayKey,
   DEFAULT_PROFILE,
+  DRINK_TYPES,
+  drinkOrder,
   fitWindow,
   type DrinkType,
   migrateEntries,
@@ -33,6 +35,9 @@ type State = {
   goalIsCustom: boolean;
   /** Goal per day for history (streak, calendar); `goal` is always today's. */
   goals: GoalLog;
+  /** Drinks list editor: order everywhere, and which drinks are hidden from Home's quick-add row. */
+  drinkOrder: DrinkType[];
+  hiddenDrinks: DrinkType[];
   entries: Entry[];
   reminders: Reminders;
   lastCelebrated: string | null;
@@ -46,6 +51,8 @@ type Actions = {
   setGoal: (ml: number, custom: boolean) => void;
   completeOnboarding: (remindersOn: boolean) => void;
   addEntry: (type: DrinkType, ml: number, at?: number, mix?: Mix) => Entry;
+  setDrinkOrder: (order: DrinkType[]) => void;
+  setDrinkHidden: (type: DrinkType, hidden: boolean) => void;
   removeEntry: (id: string) => Entry | undefined;
   restoreEntry: (e: Entry) => void;
   setReminders: (r: Partial<Reminders>) => void;
@@ -66,6 +73,8 @@ export const useJibna = create<State & Actions>()(
       goalIsCustom: false,
       goals: [{ from: '', ml: calcGoal(DEFAULT_PROFILE) }],
       entries: [],
+      drinkOrder: [...DRINK_TYPES],
+      hiddenDrinks: [],
       reminders: {
         enabled: false,
         intervalMin: 90,
@@ -108,6 +117,13 @@ export const useJibna = create<State & Actions>()(
         set((s) => ({ entries: [...s.entries, entry] }));
         return entry;
       },
+      setDrinkOrder: (order) => set({ drinkOrder: order }),
+      setDrinkHidden: (type, hidden) =>
+        set((s) => {
+          const next = s.hiddenDrinks.filter((t) => t !== type).concat(hidden ? [type] : []);
+          // Keep at least one drink on Home.
+          return next.length >= DRINK_TYPES.length ? {} : { hiddenDrinks: next };
+        }),
       removeEntry: (id) => {
         const entry = get().entries.find((e) => e.id === id);
         set((s) => ({ entries: s.entries.filter((e) => e.id !== id) }));
@@ -127,12 +143,14 @@ export const useJibna = create<State & Actions>()(
     }),
     {
       name: 'jibna-v1',
-      version: 2,
+      version: 3,
       // v1: Entry.mix (liquor mixers). v2: goal history, seeded with the current goal for all past days.
+      // v3: drinks list (order + hidden), defaults to every drink in the built-in order.
       migrate: (persisted, version) => {
         let s = persisted as State;
         if (version < 1) s = { ...s, entries: migrateEntries(s.entries ?? []) };
         if (version < 2) s = { ...s, goals: [{ from: '', ml: s.goal }] };
+        if (version < 3) s = { ...s, drinkOrder: drinkOrder([]), hiddenDrinks: [] };
         return s;
       },
       storage: createJSONStorage(() => AsyncStorage),

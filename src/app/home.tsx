@@ -11,7 +11,7 @@ import { Mascot } from '@/components/Mascot';
 import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { challengeProgress, DRINK_TYPES, formatMl, fromKey, hydrationOf, TH_DAYS } from '@/lib/hydration';
+import { challengeProgress, formatMl, fromKey, homeDrinks, hydrationOf, TH_DAYS } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -35,6 +35,8 @@ export default function Home() {
   const mascotWidth = Math.min(300, width - 90) / Math.min(Math.max(fontScale, 1), 1.35) ** 1.5;
   const today = useToday();
   const entries = useJibna((s) => s.entries);
+  const savedOrder = useJibna((s) => s.drinkOrder);
+  const hiddenDrinks = useJibna((s) => s.hiddenDrinks);
   const lastCelebrated = useJibna((s) => s.lastCelebrated);
   const toast = useJibna((s) => s.toast);
   const added = toast?.undo?.kind === 'add' ? toast.undo.entry : null;
@@ -106,7 +108,7 @@ export default function Home() {
             <View style={s.avatar}><Mascot pose="Happy" width={52} /></View>
             <Text variant="label" color="muted">น้องจิบ</Text>
           </View>
-          {DRINK_TYPES.map((t) => (
+          {homeDrinks(savedOrder, hiddenDrinks).map((t) => (
             <DrinkChip key={t} type={t} onPress={() => router.push({ pathname: '/add-drink', params: { type: t } })} />
           ))}
         </ScrollView>
