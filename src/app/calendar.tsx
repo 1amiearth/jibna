@@ -7,7 +7,7 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { dayKey, dayTotals, formatMl, goalOn, monthGrid, TH_MONTHS, waterDrops } from '@/lib/hydration';
+import { dayKey, dayTotals, formatMl, fromKey, goalOn, loggedDays, monthGrid, TH_MONTHS, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -39,6 +39,10 @@ export default function Calendar() {
   const now = new Date();
   const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const isCurrent = month.y === now.getFullYear() && month.m === now.getMonth();
+  // Lower bound: the month of the first logged drink (nothing to see before it).
+  const first = loggedDays(entries).reduce((a, k) => (k < a ? k : a), dayKey(now));
+  const firstDate = fromKey(first);
+  const isFirst = month.y * 12 + month.m <= firstDate.getFullYear() * 12 + firstDate.getMonth();
   const shift = (d: number) => setMonth(({ y, m }) => ({ y: m + d < 0 ? y - 1 : m + d > 11 ? y + 1 : y, m: (m + d + 12) % 12 }));
   const todayKey = dayKey(now);
   const goalFor = (k: string) => goalOn(goals, k, today.goal);
@@ -79,9 +83,11 @@ export default function Calendar() {
       </View>
 
       <View style={s.monthHeader}>
-        <Pressable onPress={() => shift(-1)} hitSlop={12} accessibilityLabel="เดือนก่อน"><Text variant="heading" color="muted">‹</Text></Pressable>
+        <Pressable onPress={() => shift(-1)} disabled={isFirst} hitSlop={12} accessibilityLabel="เดือนก่อน" accessibilityState={{ disabled: isFirst }}>
+          <Text variant="heading" color={isFirst ? 'divider' : 'muted'}>‹</Text>
+        </Pressable>
         <Text variant="title">{`${TH_MONTHS[month.m]} ${month.y}`}</Text>
-        <Pressable onPress={() => shift(1)} disabled={isCurrent} hitSlop={12} accessibilityLabel="เดือนถัดไป">
+        <Pressable onPress={() => shift(1)} disabled={isCurrent} hitSlop={12} accessibilityLabel="เดือนถัดไป" accessibilityState={{ disabled: isCurrent }}>
           <Text variant="heading" color={isCurrent ? 'divider' : 'muted'}>›</Text>
         </Pressable>
       </View>
