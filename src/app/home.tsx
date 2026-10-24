@@ -9,7 +9,7 @@ import { Mascot } from '@/components/Mascot';
 import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { DRINK_TYPES, DRINKS, entriesOn, formatMl, isAlcohol } from '@/lib/hydration';
+import { DRINK_TYPES, entriesOn, formatMl, hydrationOf, isAlcohol } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -33,7 +33,9 @@ export default function Home() {
   const lastCelebrated = useJibna((s) => s.lastCelebrated);
   const toast = useJibna((s) => s.toast);
   const added = toast?.undo?.kind === 'add' ? toast.undo.entry : null;
-  const reaction = toast && added ? { id: toast.id, alcohol: DRINKS[added.type].factor < 0 } : null;
+  // Dizzy only when the drink cost water overall (same rule as the Add Drink warning), so a
+  // well-mixed highball or a beer gets the happy reaction.
+  const reaction = toast && added ? { id: toast.id, alcohol: hydrationOf(added) < 0 } : null;
   const markCelebrated = useJibna((s) => s.markCelebrated);
 
   // Goal Reached modal once per day, when Home regains focus after an add.
