@@ -247,7 +247,11 @@ export function caffeineOf(e: Pick<Entry, 'type' | 'ml'>): number {
   return Math.round(e.ml * (DRINKS[e.type].caffeineMgPerMl ?? 0));
 }
 
-/** Local calendar day, 'YYYY-MM-DD'. */
+/**
+ * Local calendar day, 'YYYY-MM-DD'. Entries store a UTC timestamp and are bucketed by the
+ * device's *current* timezone when read, so after flying to another timezone a late-night drink
+ * can show on the neighbouring day. Deliberate: matches the clock the user sees; no stored tz.
+ */
 export function dayKey(t: number | Date): string {
   const d = new Date(t);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
