@@ -171,6 +171,13 @@ export function formatFactor(factor: number): string {
   return `${factor < 0 ? '−' : ''}${Math.round(Math.abs(factor) * 100)}%`;
 }
 
+/** 90 → '1 ชม. 30 นาที' */
+export function intervalLabel(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return [h ? `${h} ชม.` : '', m ? `${m} นาที` : ''].filter(Boolean).join(' ');
+}
+
 export function formatTime(t: number): string {
   const d = new Date(t);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
