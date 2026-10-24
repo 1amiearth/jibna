@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Fragment, useEffect } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FullWindowOverlay } from 'react-native-screens';
 import { SvgXml } from 'react-native-svg';
 
 import { Text } from '@/components/Text';
@@ -9,6 +10,9 @@ import { colors } from '@/theme/tokens';
 
 const OK = '<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#5CC9A7"/><path d="M6.5 11.5l3 3L15.5 8" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const DURATION_MS = 4000;
+// iOS modal screens (Day Log, Calendar) are separate native windows above the root view, so the
+// toast draws in a full-window overlay to stay visible (and undoable) over them.
+const Overlay = Platform.OS === 'ios' ? FullWindowOverlay : Fragment;
 
 /** Figma: Toast. Global, driven by store.toast; auto-dismisses; เลิกทำ reverts the last add/delete. */
 export function ToastHost() {
@@ -25,17 +29,19 @@ export function ToastHost() {
 
   if (!toast) return null;
   return (
-    <View pointerEvents="box-none" style={[s.wrap, { bottom: insets.bottom + 16 }]}>
-      <View style={s.toast} accessibilityLiveRegion="polite">
-        <SvgXml xml={OK} width={22} height={22} />
-        <Text variant="bodyStrong" color="bg" style={s.msg} numberOfLines={2}>{toast.message}</Text>
-        {toast.undo ? (
-          <Pressable onPress={undo} hitSlop={10} accessibilityRole="button">
-            <Text variant="bodyStrong" color="sun">เลิกทำ</Text>
-          </Pressable>
-        ) : null}
+    <Overlay>
+      <View pointerEvents="box-none" style={[s.wrap, { bottom: insets.bottom + 16 }]}>
+        <View style={s.toast} accessibilityLiveRegion="polite">
+          <SvgXml xml={OK} width={22} height={22} />
+          <Text variant="bodyStrong" color="bg" style={s.msg} numberOfLines={2}>{toast.message}</Text>
+          {toast.undo ? (
+            <Pressable onPress={undo} hitSlop={10} accessibilityRole="button">
+              <Text variant="bodyStrong" color="sun">เลิกทำ</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-    </View>
+    </Overlay>
   );
 }
 

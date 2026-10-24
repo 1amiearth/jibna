@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Text';
+import { useJibna } from '@/store/useJibna';
 import { colors, radius } from '@/theme/tokens';
 
 type HeaderProps = {
@@ -36,6 +38,11 @@ type SheetProps = HeaderProps & { visible: boolean; children: React.ReactNode };
 /** Bottom sheet: scrim + white panel with SheetHeader. Tapping the scrim cancels. */
 export function Sheet({ visible, children, ...header }: SheetProps) {
   const insets = useSafeAreaInsets();
+  // The toast draws above everything (incl. this Modal); opening a sheet means the user moved on.
+  const hideToast = useJibna((s) => s.hideToast);
+  useEffect(() => {
+    if (visible) hideToast();
+  }, [visible, hideToast]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={header.onCancel}>
       <View style={s.root}>
