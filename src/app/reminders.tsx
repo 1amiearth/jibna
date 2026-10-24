@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 import { ERROR_ICON, ErrorNote } from '@/components/AmountSheet';
@@ -34,15 +34,20 @@ export default function Reminders() {
   const sheets = useSheets<'interval' | 'window'>();
   const [draft, setDraft] = useState({ intervalMin: r.intervalMin, start: r.start, end: r.end });
 
-  useFocusEffect(
-    useCallback(() => {
-      getPermission().then(setPerm).catch(() => setPerm('denied'));
-    }, []),
-  );
+  const refreshPerm = useCallback(() => {
+    getPermission().then(setPerm).catch(() => setPerm('denied'));
+  }, []);
+  useFocusEffect(refreshPerm);
+  // Returning from iOS Settings is a foreground, not a focus: re-read so the banner clears.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && refreshPerm());
+    return () => sub.remove();
+  }, [refreshPerm]);
 
   const denied = perm === 'denied';
   const off = !r.enabled || denied;
   const setEnabled = async (enabled: boolean) => {
+    if (enabled && perm === 'denied') return Linking.openSettings();
     if (enabled && perm === 'undetermined') {
       const ok = await requestPermission().catch(() => false);
       setPerm(ok ? 'granted' : 'denied');
