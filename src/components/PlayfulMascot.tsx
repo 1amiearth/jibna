@@ -48,18 +48,31 @@ const haptic = (style: Haptics.ImpactFeedbackStyle) => {
   if (Platform.OS !== 'web') Haptics.impactAsync(style).catch(() => {});
 };
 
+type Props = {
+  percent: number;
+  width: number;
+  reaction?: MascotReaction | null;
+  /** Welcome screen: drops in, keeps waving with motion lines, always happy. */
+  welcome?: boolean;
+};
+
+// Welcome wave: left arm raised up-left (Figma "Pose=Wave"), swinging ±15°.
+const WAVE_RAISE = 125;
+const DROP_FROM = -520;
+
 /**
- * น้องจิบ on Home, alive: idle breathing, random blinks, arm sway and sloshing water; tap for a
- * random trick (jump, wink, wave, spin); a happy jump with bubbles after each drink (dizzy face
- * after Beer/Liquor); mood follows progress. Reduce Motion → static poses only.
+ * น้องจิบ, alive: idle breathing, random blinks, arm sway and sloshing water; tap for a random
+ * trick (jump, wink, wave, spin) with a haptic. On Home: a happy jump with bubbles after each
+ * drink (dizzy face after Beer/Liquor) and a mood that follows progress. On Welcome: drop-in
+ * entrance and a waving loop. Reduce Motion → static poses only.
  */
-export function PlayfulMascot({ percent, width, reaction }: { percent: number; width: number; reaction?: MascotReaction | null }) {
+export function PlayfulMascot({ percent, width, reaction, welcome = false }: Props) {
   const reduce = useReducedMotion();
   const k = width / 324;
   const height = (width * 405) / 324;
   const [dizzy, setDizzy] = useState(false);
   const [expr, setExpr] = useState<Expression>(null);
-  const face: Face = dizzy ? 'dizzy' : mascotMood(percent);
+  const face: Face = welcome ? 'happy' : dizzy ? 'dizzy' : mascotMood(percent);
   const lastTrick = useRef<Trick | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
@@ -70,7 +83,9 @@ export function PlayfulMascot({ percent, width, reaction }: { percent: number; w
   const breath = useSharedValue(0);
   const sway = useSharedValue(0.5);
   const blink = useSharedValue(1);
-  const jumpY = useSharedValue(0);
+  const jumpY = useSharedValue(welcome && !reduce ? DROP_FROM : 0);
+  const raiseL = useSharedValue(welcome ? WAVE_RAISE : 0);
+  const waveL = useSharedValue(0);
   const squash = useSharedValue(0);
   const spin = useSharedValue(0);
   const wobble = useSharedValue(0);
@@ -115,6 +130,20 @@ export function PlayfulMascot({ percent, width, reaction }: { percent: number; w
     twinkle.set(withRepeat(withTiming(1, { duration: 1400, easing: Easing.linear }), -1, false));
     orbit.set(withRepeat(withTiming(1, { duration: 1800, easing: Easing.linear }), -1, false));
   }, [reduce, breath, sway, slosh, twinkle, orbit]);
+
+  // Welcome: fall in from above, land with a squash, then keep waving.
+  useEffect(() => {
+    if (!welcome) return;
+    if (reduce) {
+      jumpY.set(0);
+      return;
+    }
+    jumpY.set(withTiming(0, { duration: 620, easing: Easing.in(Easing.quad) }));
+    squash.set(withDelay(620, withSequence(withTiming(-1, { duration: 120 }), withTiming(0.5, { duration: 160 }), withSpring(0, { damping: 6 }))));
+    waveL.set(withDelay(900, withRepeat(withSequence(withTiming(-16, { duration: 260 }), withTiming(14, { duration: 260 })), -1, true)));
+    later(620, () => haptic(Haptics.ImpactFeedbackStyle.Soft));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [welcome, reduce]);
 
   // Random blink every 3–6 s.
   useEffect(() => {
@@ -210,12 +239,17 @@ export function PlayfulMascot({ percent, width, reaction }: { percent: number; w
     ],
   }));
   const shadowStyle = useAnimatedStyle(() => ({
-    opacity: 1 + jumpY.value / 90,
-    transform: [{ scaleX: 1 + jumpY.value / 160 }],
+    opacity: Math.max(0, 1 + jumpY.value / 90),
+    transform: [{ scaleX: Math.max(0.2, 1 + jumpY.value / 160) }],
+  }));
+  const motionStyle = useAnimatedStyle(() => ({
+    opacity: jumpY.value < -5 ? 0 : 0.55 + 0.45 * Math.abs(waveL.value / 16),
   }));
   const bodyStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 + breath.value * 0.02 }, { scaleX: 1 - breath.value * 0.008 }] }));
   const eyesStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: blink.value }] }));
-  const armLStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${armBase.value + (sway.value - 0.5) * 8}deg` }] }));
+  const armLStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${armBase.value + raiseL.value + waveL.value + (sway.value - 0.5) * 8}deg` }],
+  }));
   const armRStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${-armBase.value + waveR.value - (sway.value - 0.5) * 8}deg` }] }));
   const back = useAnimatedProps(() => ({ d: wavePath(waterY(level.value) - 13, 10, (slosh.value - 0.5) * 8 - kick.value * 12) }));
   const front = useAnimatedProps(() => ({ d: wavePath(waterY(level.value), -10, (0.5 - slosh.value) * 8 + kick.value * 12) }));
@@ -263,6 +297,7 @@ export function PlayfulMascot({ percent, width, reaction }: { percent: number; w
         </Animated.View>
         {layer(<Arm side="left" />, [origin(SHOULDER_L), armLStyle])}
         {layer(<Arm side="right" />, [origin(SHOULDER_R), armRStyle])}
+        {welcome && layer(<MotionLines />, motionStyle)}
       </Animated.View>
       {(face === 'celebrate' || face === 'full') && <Sparkles twinkle={twinkle} k={k} still={reduce} />}
       {face === 'thirsty' && layer(<Path d="M246 150c0 0 10 12 10 18a10 10 0 0 1-20 0c0-6 10-18 10-18z" fill={WATER_BACK} />)}
@@ -277,6 +312,17 @@ export function PlayfulMascot({ percent, width, reaction }: { percent: number; w
         </Animated.View>
       )}
     </Pressable>
+  );
+}
+
+/** "Hi!" motion lines beside the raised left hand (as in Figma Pose=Wave). */
+function MotionLines() {
+  const stroke = { stroke: WATER_FRONT, strokeWidth: 7, strokeLinecap: 'round' as const };
+  return (
+    <>
+      <Path d="M6 214 L22 222" {...stroke} />
+      <Path d="M20 186 L30 202" {...stroke} />
+    </>
   );
 }
 
