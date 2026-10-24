@@ -9,7 +9,8 @@ const ROW = 40;
 type Props = { values: string[]; index: number; onChange: (i: number) => void; width?: number; rows?: 5 | 7; label?: string };
 
 /** Snap-scrolling wheel picker matching the Figma wheels (water-pale selection band). */
-export function Wheel({ values, index, onChange, width = 120, rows = 5, label }: Props) {
+export function Wheel({ values, index: rawIndex, onChange, width = 120, rows = 5, label }: Props) {
+  const index = Math.min(values.length - 1, Math.max(0, rawIndex));
   const pad = ((rows - 1) / 2) * ROW;
   const last = useRef(index);
   const settle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {

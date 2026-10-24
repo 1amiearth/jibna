@@ -13,6 +13,7 @@ import { Text } from '@/components/Text';
 import { isFuture, WhenPicker } from '@/components/WhenPicker';
 import {
   AMOUNT_MAX,
+  BACKDATE_DAYS,
   AMOUNT_MIN,
   caffeineOf,
   dayKey,
@@ -30,6 +31,7 @@ import {
   type DrinkType,
   type Entry,
 } from '@/lib/hydration';
+import { useNow } from '@/lib/useNow';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
 
@@ -46,8 +48,10 @@ function defaultMissedTime(key: string) {
 /** Day Log (Figma 05, 27–30): list, delete confirm + undo, add missed drink, empty state. */
 export default function DayLog() {
   const params = useLocalSearchParams<{ date?: string }>();
-  const key = params.date ?? dayKey(Date.now());
-  const isToday = key === dayKey(Date.now());
+  const now = useNow();
+  const key = params.date ?? dayKey(now);
+  const isToday = key === dayKey(now);
+  const canBackdate = (now - fromKey(key).getTime()) / 86400000 < BACKDATE_DAYS + 1;
   const entries = useJibna((s) => s.entries);
   const goal = useJibna((s) => s.goal);
   const removeEntry = useJibna((s) => s.removeEntry);
@@ -60,7 +64,7 @@ export default function DayLog() {
 
   const [pending, setPending] = useState<Entry | null>(null);
   const [adding, setAdding] = useState(false);
-  const [missed, setMissed] = useState<{ type: DrinkType; ml: number; at: number }>({ type: 'Water', ml: 350, at: Date.now() });
+  const [missed, setMissed] = useState<{ type: DrinkType; ml: number; at: number }>(() => ({ type: 'Water', ml: 350, at: Date.now() }));
 
   const afterDelete = pending ? dayTotals(entries.filter((e) => e.id !== pending.id), key).hydration : 0;
   const confirmDelete = () => {
@@ -99,7 +103,7 @@ export default function DayLog() {
           <Text variant="caption" color="muted" align="center" style={s.emptyBody}>
             แตะแก้วที่หน้าแรกเพื่อบันทึก หรือเพิ่มย้อนหลังถ้าลืมจด
           </Text>
-          <Button label="+ เพิ่มเครื่องดื่มย้อนหลัง" kind="Soft" size="Small" onPress={openAdd} />
+          {canBackdate && <Button label="+ เพิ่มเครื่องดื่มย้อนหลัง" kind="Soft" size="Small" onPress={openAdd} />}
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.list}>
@@ -120,7 +124,7 @@ export default function DayLog() {
               </View>
             );
           })}
-          <Button label="+ เพิ่มเครื่องดื่มย้อนหลัง" kind="Soft" size="Small" onPress={openAdd} style={s.addMissed} />
+          {canBackdate && <Button label="+ เพิ่มเครื่องดื่มย้อนหลัง" kind="Soft" size="Small" onPress={openAdd} style={s.addMissed} />}
         </ScrollView>
       )}
 

@@ -38,7 +38,7 @@ export default function AddDrink() {
   const [sizeIndex, setSizeIndex] = useState(drink.sizes.indexOf(drink.ml));
   const [customMl, setCustomMl] = useState<number | null>(null);
   const [at, setAt] = useState<number | null>(null);
-  const [draftAt, setDraftAt] = useState(Date.now());
+  const [draftAt, setDraftAt] = useState(() => Date.now());
   const sheets = useSheets<'type' | 'more' | 'amount' | 'time'>();
   const addEntry = useJibna((s) => s.addEntry);
   const showToast = useJibna((s) => s.showToast);

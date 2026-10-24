@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
@@ -34,15 +34,21 @@ type Props = {
 };
 
 /** Keypad sheet for typed amounts (custom drink ml, custom goal). Figma 25 / 25b. */
-export function AmountSheet({ visible, title, initial, hint, validate, confirmLabel, confirmKind = 'Water', onConfirm, onCancel }: Props) {
+export function AmountSheet({ visible, title, onCancel, ...body }: Props) {
+  return (
+    <Sheet visible={visible} title={title} onCancel={onCancel}>
+      {/* Mounted only while open so each opening starts from `initial`. */}
+      {visible && <AmountBody {...body} />}
+    </Sheet>
+  );
+}
+
+function AmountBody({ initial, hint, validate, confirmLabel, confirmKind = 'Water', onConfirm }: Omit<Props, 'visible' | 'title' | 'onCancel'>) {
   const [digits, setDigits] = useState(String(initial));
-  useEffect(() => {
-    if (visible) setDigits(String(initial));
-  }, [visible, initial]);
   const n = Number(digits || 0);
   const error = digits ? validate(n) : null;
   return (
-    <Sheet visible={visible} title={title} onCancel={onCancel}>
+    <>
       <View style={s.display}>
         <Text variant="display" color={error ? 'berry' : 'water'}>{formatMl(n)}</Text>
         <Text variant="title" color="muted">ml</Text>
@@ -56,7 +62,7 @@ export function AmountSheet({ visible, title, initial, hint, validate, confirmLa
         onPress={() => onConfirm(n)}
         style={s.full}
       />
-    </Sheet>
+    </>
   );
 }
 

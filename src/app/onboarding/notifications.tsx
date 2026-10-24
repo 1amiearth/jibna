@@ -39,7 +39,7 @@ export default function NotificationsPermission() {
       <Mascot pose="Thirsty" width={170} />
       <View style={s.preview}>
         <NotificationPreview remaining={formatMl(goal)} />
-        <Text variant="caption" color="muted" align="center">หลังแตะปุ่ม iOS จะถามสิทธิ์อีกครั้ง — กด "อนุญาต"</Text>
+        <Text variant="caption" color="muted" align="center">หลังแตะปุ่ม iOS จะถามสิทธิ์อีกครั้ง — กด “อนุญาต”</Text>
       </View>
       <View style={s.actions}>
         <Button label="เปิดการแจ้งเตือน" onPress={allow} disabled={busy} style={s.full} />
