@@ -221,13 +221,20 @@ test('caffeine per serving', () => {
   assert.equal(caffeineOf({ type: 'Water', ml: 350 }), 0);
   assert.equal(caffeineOf({ type: 'Cocoa', ml: 250 }), 5);
   assert.equal(caffeineOf({ type: 'Cocoa', ml: 500 }), 10);
+  assert.equal(caffeineOf({ type: 'LemonSoda', ml: 500 }), 0);
 });
 
 test('cocoa: milk-based hydration, appended after the existing drinks', () => {
   assert.equal(hydrationOf({ type: 'Cocoa', ml: 250 }), 225);
   assert.deepEqual(DRINKS.Cocoa.sizes, [250, 350, 500]);
-  assert.equal(DRINK_TYPES.at(-1), 'Cocoa');
+  assert.deepEqual(DRINK_TYPES.slice(-2), ['Cocoa', 'LemonSoda']);
   assert.deepEqual(DRINK_TYPES.slice(0, 8), ['Water', 'ThaiTea', 'GreenTea', 'Coffee', 'Milk', 'Coconut', 'Beer', 'Liquor']);
+});
+
+test('lemon soda: sparkling citrus at 95%, no caffeine, sizes like the other soft drinks', () => {
+  assert.equal(hydrationOf({ type: 'LemonSoda', ml: 500 }), 475);
+  assert.deepEqual(DRINKS.LemonSoda.sizes, [250, 350, 500]);
+  assert.equal(DRINKS.LemonSoda.ml, 250);
 });
 
 test('water bottles: 600 ml and 1.5 L draw as a bottle with their own fill scale', () => {
@@ -265,7 +272,7 @@ test('daily challenge rotates by day and counts only that day, never alcohol', (
 
 test('drinks list: order is repaired, hidden drinks leave Home, never empty', () => {
   assert.deepEqual(drinkOrder(['Beer', 'Water', 'Bogus', 'Beer']).slice(0, 3), ['Beer', 'Water', 'ThaiTea']);
-  assert.equal(drinkOrder([]).length, 9);
+  assert.equal(drinkOrder([]).length, 10);
   assert.deepEqual(homeDrinks(['Coffee', 'Water'], ['Water', 'Liquor']).slice(0, 2), ['Coffee', 'ThaiTea']);
   assert.ok(!homeDrinks([], ['Liquor']).includes('Liquor'));
   const all = drinkOrder([]);
@@ -358,18 +365,21 @@ test('store migration: a v0 save comes up to the current version; newer saves ar
   const s = migrateState(v0, 0);
   assert.deepEqual(s.entries![0].mix, { kind: 'neat', liquorMl: 30 }); // v1
   assert.deepEqual(s.goals, [{ from: '', ml: 2500 }]); // v2
-  assert.equal(s.drinkOrder!.length, 9); // v3
+  assert.equal(s.drinkOrder!.length, 10); // v3
   assert.deepEqual(s.hiddenDrinks, []);
   assert.deepEqual(s.reminders, { enabled: true }); // untouched fields pass through
   assert.equal(STORE_VERSION, 3);
   // Already current: nothing rewritten (custom drink order survives).
   const v3 = { ...s, drinkOrder: ['Beer', ...s.drinkOrder!.filter((t) => t !== 'Beer')] as Entry['type'][] };
   assert.deepEqual(migrateState(v3, 3).drinkOrder![0], 'Beer');
-  // A v3 save from before โกโก้: custom order and hidden list kept, cocoa appended and shown on Home.
+  // A v3 save from before โกโก้/น้ำมะนาวโซดา: custom order and hidden list kept, new drinks appended and shown on Home.
   const preCocoa = ['Beer', 'Water', 'ThaiTea', 'GreenTea', 'Coffee', 'Milk', 'Coconut', 'Liquor'] as Entry['type'][];
+  // A save from between the two (cocoa already placed by the user) keeps cocoa where it was.
+  const afterCocoa = ['Cocoa', ...preCocoa] as Entry['type'][];
+  assert.deepEqual(drinkOrder(migrateState({ ...v3, drinkOrder: afterCocoa }, 3).drinkOrder!), [...afterCocoa, 'LemonSoda']);
   const old = migrateState({ ...v3, drinkOrder: preCocoa, hiddenDrinks: ['Liquor'] as Entry['type'][] }, 3);
-  assert.deepEqual(drinkOrder(old.drinkOrder!), [...preCocoa, 'Cocoa']);
-  assert.deepEqual(homeDrinks(old.drinkOrder!, old.hiddenDrinks!).slice(-2), ['Coconut', 'Cocoa']);
+  assert.deepEqual(drinkOrder(old.drinkOrder!), [...preCocoa, 'Cocoa', 'LemonSoda']);
+  assert.deepEqual(homeDrinks(old.drinkOrder!, old.hiddenDrinks!).slice(-3), ['Coconut', 'Cocoa', 'LemonSoda']);
   // From a newer app (downgrade): kept as is, extra fields included.
   const v9 = { ...v3, futureField: 1 };
   assert.equal(migrateState(v9, 9), v9);

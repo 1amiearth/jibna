@@ -54,6 +54,7 @@ export const VESSELS: Record<DrinkType, { shape: keyof typeof SHAPES; liquid: st
   Beer: { shape: 'beerMug', liquid: '#F2B33D', back: '#FCE8B2', accent: '#E0A02A' },
   Liquor: { shape: 'shot', liquid: '#C47F35', back: '#DDA866', accent: '#B8722A' },
   Cocoa: { shape: 'mug', liquid: '#7B4A2E', back: '#A9765A', accent: '#7B4A2E' },
+  LemonSoda: { shape: 'glass', liquid: '#E4F2A0', back: '#F5FAD6', accent: '#6FA82A' },
 };
 
 /** Mixed liquor: tall highball, amber diluted by the mixer. */

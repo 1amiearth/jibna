@@ -9,7 +9,8 @@ export type DrinkType =
   | 'Coconut'
   | 'Beer'
   | 'Liquor'
-  | 'Cocoa';
+  | 'Cocoa'
+  | 'LemonSoda';
 
 export type Drink = {
   label: string;
@@ -50,6 +51,7 @@ export const alcoholFactor = (abv: number, waterShare: number) => waterShare - M
  *   เบียร์ 5%       320 ml   ≈+54%    ≈+171           1,500 ml   (water 93%, 12.6 g alcohol)
  *   เหล้า 40%        30 ml   ≈−256%   ≈−77 neat         300 ml   (water 60%, 9.5 g alcohol)
  *   โกโก้           250 ml    90%     +225            1,000 ml   (milk-based, like นม)
+ *   น้ำมะนาวโซดา     250 ml    95%     ≈+238           1,000 ml   (sparkling citrus, light sugar)
  *   mixer (น้ำ/โซดา)  +ml     100%     +ml             1,000 ml   (plain soda water, no sugar)
  *   e.g. เหล้า 45 + โซดา 200 ≈ −115 + 200 = +85
  */
@@ -63,8 +65,9 @@ export const DRINKS: Record<DrinkType, Drink> = {
   Coconut: { label: 'น้ำมะพร้าว', ml: 400, factor: 1, sizes: [250, 400, 500], maxMl: 1000 },
   Beer: { label: 'เบียร์', ml: 320, factor: alcoholFactor(0.05, 0.93), abv: 0.05, sizes: [320, 490, 620], maxMl: 1500 },
   Liquor: { label: 'เหล้า', ml: 30, factor: alcoholFactor(0.4, 0.6), abv: 0.4, sizes: [30, 45, 60], maxMl: 300 },
-  // Appended last so saved drink orders keep their positions. Cocoa ≈ 5 mg caffeine per 250 ml.
+  // New drinks go last so saved drink orders keep their positions. Cocoa ≈ 5 mg caffeine per 250 ml.
   Cocoa: { label: 'โกโก้', ml: 250, factor: 0.9, sizes: [250, 350, 500], maxMl: 1000, caffeineMgPerMl: 0.02 },
+  LemonSoda: { label: 'น้ำมะนาวโซดา', ml: 250, factor: 0.95, sizes: [250, 350, 500], maxMl: 1000 },
 };
 
 export const MIXER_MAX_ML = 1000;
