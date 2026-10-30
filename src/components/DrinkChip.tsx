@@ -6,17 +6,22 @@ import { Text } from '@/components/Text';
 import { DRINKS, type DrinkType } from '@/lib/hydration';
 import { colors } from '@/theme/tokens';
 
+// Not in the Figma export yet: hand-drawn cocoa mug with marshmallows, same 48×56 artboard.
+const COCOA =
+  '<svg width="48" height="56" viewBox="0 0 48 56" fill="none"><path d="M36 26C42.7 26 46 28.7 46 34C46 39.3 42.7 42 36 42" stroke="#9C6644" stroke-width="4"/><path d="M8 20H36V42C36 48.6 32 52 25 52H19C12 52 8 48.6 8 42V20Z" fill="#9C6644"/><path d="M10 20H34V24C34 25.1 33.1 26 32 26H12C10.9 26 10 25.1 10 24V20Z" fill="#5E3A24"/><rect x="13" y="15" width="8" height="7" rx="2" fill="#FFF6EA" stroke="#F2C9D4" stroke-width="1.5"/><rect x="22" y="13" width="8" height="7" rx="2" fill="#FFF6EA" stroke="#F2C9D4" stroke-width="1.5"/><path d="M18 9C16 6.5 16 4.5 18 2M27 8C25 5.5 25 3.5 27 1" stroke="#E2CBB8" stroke-width="2.5" stroke-linecap="round"/></svg>';
+const ICONS: Record<DrinkType, string> = { ...drinkSvg, Cocoa: COCOA };
+
 const ADD = '<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" fill="#4DB3E6" stroke="#FFFFFF" stroke-width="2"/><path d="M11 6.5v9M6.5 11h9" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/></svg>';
 
 /** Drink illustration from Figma (48×56 artboard), scaled to `width`. */
 export function DrinkArt({ type, width = 48 }: { type: DrinkType; width?: number }) {
-  return <SvgXml xml={drinkSvg[type]} width={width} height={(width * 56) / 48} />;
+  return <SvgXml xml={ICONS[type]} width={width} height={(width * 56) / 48} />;
 }
 
 type Props = { type: DrinkType; onPress?: () => void; selected?: boolean; showAdd?: boolean };
 
 /**
- * Figma: Drink Chip (8 types incl. Beer, Liquor). With `selected` set it's a choice in a picker
+ * Figma: Drink Chip (Beer, Liquor and the rest; โกโก้ added after the Figma export). With `selected` set it's a choice in a picker
  * (VoiceOver: radio "ชาไทย, selected"); without, it's Home's quick-add button ("เพิ่มชาไทย").
  */
 export function DrinkChip({ type, onPress, selected, showAdd = true }: Props) {
