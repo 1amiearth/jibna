@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -14,6 +14,7 @@ import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
 import { Wheel } from '@/components/Wheel';
+import { goBack } from '@/lib/goBack';
 import { formatMl, fromMin, intervalLabel, reminderTimes, windowInsideWake } from '@/lib/hydration';
 import { getPermission, queueReschedule, requestPermission, type PermissionState } from '@/lib/notifications';
 import { useSheets } from '@/lib/useSheets';
@@ -60,7 +61,7 @@ export default function Reminders() {
 
   return (
     <Screen scroll style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <View style={s.head}>
         <View style={s.flex}>
           <Text variant="heading">เตือนให้จิบ</Text>

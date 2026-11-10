@@ -2,19 +2,19 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SvgXml } from 'react-native-svg';
 
-import { artSvg } from '@/assets/svg';
 import { ErrorNote } from '@/components/AmountSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
-import { Mascot } from '@/components/Mascot';
 import { Option } from '@/components/Option';
+import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Row } from '@/components/Row';
 import { TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
+import { WaterPanel } from '@/components/WaterPanel';
 import { Wheel } from '@/components/Wheel';
+import { goBack } from '@/lib/goBack';
 import {
   ACTIVITY_ML,
   awakeMinutes,
@@ -80,7 +80,7 @@ export default function GoalSetup() {
   const save = (useCalculated: boolean) => {
     setProfile(draft); // keeps a custom goal as is
     if (useCalculated) setGoal(goal, false);
-    if (fromSettings) router.back();
+    if (fromSettings) goBack();
     else router.push('/onboarding/notifications');
   };
   // From Settings, don't silently replace a goal the user set by hand.
@@ -91,7 +91,7 @@ export default function GoalSetup() {
       <SafeAreaView edges={['top']} style={s.fill}>
         <ScrollView contentContainerStyle={s.content}>
           <TopBar
-            left={<IconButton type="back" onPress={() => router.back()} />}
+            left={<IconButton type="back" onPress={goBack} />}
             right={
               <Pressable onPress={() => router.push({ pathname: '/edit-goal', params: fromSettings ? {} : { next: 'notifications' } })} hitSlop={10}>
                 <Text variant="bodyStrong" color="water">กำหนดเอง</Text>
@@ -111,9 +111,10 @@ export default function GoalSetup() {
       </SafeAreaView>
 
       <View style={s.panel}>
-        <SvgXml xml={artSvg.waterPanel} width={width} height={330} style={s.panelBg} />
+        <WaterPanel width={width} height={330} style={s.panelBg} />
         <View style={s.mascot}>
-          <Mascot pose="Drink" width={86} />
+          {/* Cheers on a full drop; hops each time the calculated goal changes. */}
+          <PlayfulMascot percent={100} width={86} reaction={{ id: goal, alcohol: false }} label="น้องจิบ" />
         </View>
         <SafeAreaView edges={['bottom']} style={s.panelContent}>
           <Text variant="display" color="bg" style={s.goal}>{formatMl(goal)} ml</Text>

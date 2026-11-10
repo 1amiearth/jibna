@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { DrinkArt } from '@/components/DrinkChip';
@@ -6,6 +5,7 @@ import { IconButton } from '@/components/IconButton';
 import { Toggle } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import { DRINKS, drinkOrder, formatFactor, moveDrink, type DrinkType } from '@/lib/hydration';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -29,7 +29,7 @@ export default function Drinks() {
 
   return (
     <Screen scroll style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <Text variant="heading">เครื่องดื่ม</Text>
       <Text variant="caption" color="muted">เลือกเครื่องดื่มที่แสดงในหน้าแรก และจัดลำดับได้ ลำดับนี้ใช้ในตัวเลือกเครื่องดื่มทุกหน้า</Text>
       <View style={s.list}>

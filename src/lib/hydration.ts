@@ -630,3 +630,26 @@ function pad(n: number) {
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
 }
+
+const MAX_LAYERS = 8;
+
+/**
+ * Today's drinks as cup bands, oldest at the bottom. Back-to-back drinks of one type share a band,
+ * drinks that dehydrate (neat liquor) get none, and an over-goal day is scaled to exactly fill the cup.
+ */
+export function cupLayers(today: readonly Entry[], goal: number, colorOf: (t: DrinkType) => string): { c: string; f: number }[] {
+  const bands: { c: string; ml: number }[] = [];
+  for (const e of [...today].sort((a, b) => a.at - b.at)) {
+    const ml = hydrationOf(e);
+    if (ml <= 0) continue;
+    const c = colorOf(e.type);
+    const last = bands[bands.length - 1];
+    if (last?.c === c) last.ml += ml;
+    else bands.push({ c, ml });
+  }
+  // ponytail: Live Activity payloads cap at 4 KB; fold the oldest bands into the first beyond MAX_LAYERS.
+  while (bands.length > MAX_LAYERS) bands[0].ml += bands.splice(1, 1)[0].ml;
+  const total = bands.reduce((s, b) => s + b.ml, 0);
+  const scale = 1 / Math.max(goal, total, 1);
+  return bands.map((b) => ({ c: b.c, f: b.ml * scale }));
+}

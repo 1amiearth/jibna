@@ -16,26 +16,27 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from 'react-native-svg';
 
-import { BODY, WATER_BACK, WATER_FRONT, waterY, wavePath } from '@/components/Mascot';
+import { BODY, useSvgId, WATER_BACK, WATER_FRONT, waterY, wavePath } from '@/components/Mascot';
 import { mascotMood, type MascotMood } from '@/lib/hydration';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 type AnimatedViewStyle = React.ComponentProps<typeof Animated.View>['style'];
 
 const INK = '#173A5E';
-const LIMB = '#1F4E79';
+const LIMB = '#3E9AD6';
 const BLUSH = '#F29A8E';
 const VIEWBOX = '0 0 324 405';
 
 // Pivot points in the 324×405 Figma frame (6:85).
-const FEET = [162, 392];
-const BELLY = [162, 353];
-const EYES = [162, 245.7];
-const SHOULDER_L = [56.7, 278.1];
-const SHOULDER_R = [267.3, 278.1];
-const HEAD = [162, 120];
+const FEET = [162, 386];
+const BELLY = [162, 354];
+const EYES = [155, 241];
+const SHOULDER_L = [50, 262];
+const SHOULDER_R = [276, 262];
+const HEAD = [170, 120];
+const CENTER = [162, 215]; // spin pivot: middle of body + legs, so it turns in place
 
 /** Fired by Home when a drink was just added (id changes per add). */
 export type MascotReaction = { id: number; alcohol: boolean };
@@ -55,6 +56,10 @@ type Props = {
   reaction?: MascotReaction | null;
   /** Welcome screen: drops in, keeps waving with motion lines, always happy. */
   welcome?: boolean;
+  /** Screen-reader label when the fill isn't today's progress (defaults to "drank N%"). */
+  label?: string;
+  /** Today's drinks bottom-up (liquid colour, share of goal); the body fills in coloured bands. */
+  layers?: { c: string; f: number }[];
 };
 
 // Welcome wave: left arm raised up-left (Figma "Pose=Wave"), swinging ±15°.
@@ -67,11 +72,12 @@ const DROP_FROM = -520;
  * drink (dizzy face after Beer/Liquor) and a mood that follows progress. On Welcome: drop-in
  * entrance and a waving loop. Reduce Motion → static poses only.
  */
-export function PlayfulMascot({ percent, width, reaction, welcome = false }: Props) {
+export function PlayfulMascot({ percent, width, reaction, welcome = false, label, layers = [] }: Props) {
   const reduce = useReducedMotion();
   // Home/Welcome stay mounted under pushed screens and modals: stop the idle loops while covered.
   const focused = useIsFocused();
   const k = width / 324;
+  const clipId = useSvgId('mascot-body');
   const height = (width * 405) / 324;
   const [dizzy, setDizzy] = useState(false);
   const [expr, setExpr] = useState<Expression>(null);
@@ -242,8 +248,9 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
         withSpring(0, { damping: 8 }),
       ));
     } else {
-      jump(46);
-      spin.set(withSequence(withDelay(150, withTiming(360, { duration: 520, easing: Easing.inOut(Easing.cubic) })), withTiming(0, { duration: 0 })));
+      // Higher jump so the turning body clears the ground; the turn finishes just before landing.
+      jump(70);
+      spin.set(withSequence(withDelay(130, withTiming(360, { duration: 440, easing: Easing.inOut(Easing.quad) })), withTiming(0, { duration: 0 })));
     }
   };
 
@@ -252,11 +259,12 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
   const charStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: jumpY.value * k },
-      { rotate: `${spin.value + wobble.value}deg` },
+      { rotate: `${wobble.value}deg` },
       { scaleX: 1 - squash.value * 0.08 },
       { scaleY: 1 + squash.value * 0.08 },
     ],
   }));
+  const spinStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.value}deg` }] }));
   const shadowStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, 1 + jumpY.value / 90),
     transform: [{ scaleX: Math.max(0.2, 1 + jumpY.value / 160) }],
@@ -272,6 +280,12 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
   const armRStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${-armBase.value + waveR.value - (sway.value - 0.5) * 8}deg` }] }));
   const back = useAnimatedProps(() => ({ d: wavePath(waterY(level.value) - 13, 10, (slosh.value - 0.5) * 8 - kick.value * 12) }));
   const front = useAnimatedProps(() => ({ d: wavePath(waterY(level.value), -10, (0.5 - slosh.value) * 8 + kick.value * 12) }));
+  // Drink bands: the top one rides the animated wave; lower ones get flat tops at their final
+  // height, so a new drink pours in from where the last one ended. Scaled to the real level
+  // (alcohol lowers it without adding a band).
+  const top = layers.length ? layers[layers.length - 1].c : WATER_FRONT;
+  const sum = layers.reduce((s, l) => s + l.f, 0);
+  const bands = layers.slice(0, -1).map((l, i) => ({ c: l.c, y: waterY((clamp01(percent / 100) * layers.slice(0, i + 1).reduce((s, x) => s + x.f, 0)) / sum) })).reverse();
   const orbitStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${orbit.value * 360}deg` }] }));
 
   const layer = (children: React.ReactNode, style?: AnimatedViewStyle) => (
@@ -284,42 +298,41 @@ export function PlayfulMascot({ percent, width, reaction, welcome = false }: Pro
     <Pressable
       onPress={onTap}
       accessibilityRole="button"
-      accessibilityLabel={`น้องจิบ ดื่มแล้ว ${Math.round(percent)}%`}
+      accessibilityLabel={label ?? `น้องจิบ ดื่มแล้ว ${Math.round(percent)}%`}
       accessibilityHint="แตะเพื่อเล่นกับน้องจิบ"
       style={{ width, height }}>
-      {layer(<Ellipse cx={162} cy={391.5} rx={116.1} ry={9.45} fill="#EDE6D8" />, [shadowStyle, origin(FEET)])}
+      {layer(<Ellipse cx={164} cy={386} rx={96} ry={8} fill="#EDE6D8" />, [shadowStyle, origin(FEET)])}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, origin(FEET), charStyle]}>
-        {layer(<Legs />)}
-        <Animated.View style={[StyleSheet.absoluteFill, origin(BELLY), bodyStyle]}>
-          {layer(
-            <>
-              <Defs>
-                <ClipPath id="mascot-body">
-                  <Path d={BODY} />
-                </ClipPath>
-              </Defs>
-              <Path d={BODY} fill="#EEF3F7" />
-              <G clipPath="url(#mascot-body)">
-                <AnimatedPath animatedProps={back} fill={WATER_BACK} />
-                <AnimatedPath animatedProps={front} fill={WATER_FRONT} />
-              </G>
-              <Path opacity={0.9} d="M97.2 189C102.6 156.6 121.5 129.6 140.4 108" stroke="white" strokeWidth={12.15} strokeLinecap="round" />
-              <Circle opacity={0.55} cx={113.4} cy={310.5} r={6.75} fill="white" />
-              <Circle opacity={0.55} cx={216} cy={288.9} r={4.7} fill="white" />
-              <Circle opacity={0.45} cx={189} cy={329.4} r={8.1} fill="white" />
-              <Cheeks big={face === 'celebrate' || face === 'full' || expr === 'joy'} />
-              <Mouth face={face} expr={expr} />
-            </>,
-          )}
-          {layer(<Eyes face={face} expr={expr} />, [origin(EYES), eyesStyle])}
-          {!reduce && <Bubbles progress={bubbles} k={k} />}
+        <Animated.View style={[StyleSheet.absoluteFill, origin(CENTER), spinStyle]}>
+          {layer(<Legs />)}
+          <Animated.View style={[StyleSheet.absoluteFill, origin(BELLY), bodyStyle]}>
+            {layer(
+              <>
+                <Defs>
+                  <ClipPath id={clipId}>
+                    <Path d={BODY} />
+                  </ClipPath>
+                </Defs>
+                <Path d={BODY} fill="#EEF3F7" />
+                <G clipPath={`url(#${clipId})`}>
+                  <AnimatedPath animatedProps={back} fill={top === WATER_FRONT ? WATER_BACK : top} opacity={top === WATER_FRONT ? 1 : 0.45} />
+                  <AnimatedPath animatedProps={front} fill={top} />
+                  {bands.map((b, i) => <Rect key={i} x={0} y={b.y} width={324} height={405 - b.y} fill={b.c} />)}
+                </G>
+                {(face === 'celebrate' || face === 'full' || expr === 'joy') && <Cheeks />}
+                <Mouth face={face} expr={expr} />
+              </>,
+            )}
+            {layer(<Eyes face={face} expr={expr} />, [origin(EYES), eyesStyle])}
+            {!reduce && <Bubbles progress={bubbles} k={k} />}
+          </Animated.View>
+          {layer(<Arm side="left" />, [origin(SHOULDER_L), armLStyle])}
+          {layer(<Arm side="right" />, [origin(SHOULDER_R), armRStyle])}
+          {welcome && layer(<MotionLines />, motionStyle)}
         </Animated.View>
-        {layer(<Arm side="left" />, [origin(SHOULDER_L), armLStyle])}
-        {layer(<Arm side="right" />, [origin(SHOULDER_R), armRStyle])}
-        {welcome && layer(<MotionLines />, motionStyle)}
       </Animated.View>
       {(face === 'celebrate' || face === 'full') && <Sparkles twinkle={twinkle} k={k} still={reduce} />}
-      {face === 'thirsty' && layer(<Path d="M246 150c0 0 10 12 10 18a10 10 0 0 1-20 0c0-6 10-18 10-18z" fill={WATER_BACK} />)}
+      {face === 'thirsty' && layer(<Path d="M276 96c0 0 10 12 10 18a10 10 0 0 1-20 0c0-6 10-18 10-18z" fill={WATER_BACK} />)}
       {face === 'dizzy' && (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, origin(HEAD), reduce ? null : orbitStyle]}>
           <Svg width={width} height={height} viewBox={VIEWBOX}>
@@ -345,45 +358,35 @@ function MotionLines() {
   );
 }
 
-function Legs() {
+// Hand-drawn style: short curved limbs a shade darker than the water so a raised arm still reads on a full body.
+const limb = { strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+
+export function Legs() {
   return (
     <>
-      <Path d="M135 337.5L129.6 372.6" stroke={LIMB} strokeWidth={29.7} strokeLinecap="round" />
-      <Ellipse cx={121.5} cy={375.3} rx={22.95} ry={14.85} fill={LIMB} />
-      <Path d="M189 337.5L194.4 372.6" stroke={LIMB} strokeWidth={29.7} strokeLinecap="round" />
-      <Ellipse cx={202.5} cy={375.3} rx={22.95} ry={14.85} fill={LIMB} />
+      <Path d="M126 346Q124 372 112 378Q100 382 104 372" stroke={LIMB} strokeWidth={16} {...limb} />
+      <Path d="M196 346Q200 370 214 376Q224 380 220 370" stroke={LIMB} strokeWidth={16} {...limb} />
     </>
   );
 }
 
-function Arm({ side }: { side: 'left' | 'right' }) {
-  return side === 'left' ? (
-    <>
-      <Path d="M56.7 278.1L35.1 315.9" stroke={LIMB} strokeWidth={29.7} strokeLinecap="round" />
-      <Circle cx={35.1} cy={315.9} r={18.9} fill={LIMB} />
-    </>
-  ) : (
-    <>
-      <Path d="M267.3 278.1L288.9 315.9" stroke={LIMB} strokeWidth={29.7} strokeLinecap="round" />
-      <Circle cx={288.9} cy={315.9} r={18.9} fill={LIMB} />
-    </>
-  );
+export function Arm({ side }: { side: 'left' | 'right' }) {
+  const d = side === 'left' ? 'M50 262Q22 278 24 306' : 'M276 262Q304 278 302 306';
+  return <Path d={d} stroke={LIMB} strokeWidth={20} {...limb} />;
 }
 
-function Cheeks({ big }: { big: boolean }) {
-  const r = big ? 17 : 14.85;
+function Cheeks() {
   return (
     <>
-      <Circle opacity={0.9} cx={108} cy={270} r={r} fill={BLUSH} />
-      <Circle opacity={0.9} cx={216} cy={270} r={r} fill={BLUSH} />
+      <Ellipse opacity={0.75} cx={110} cy={262} rx={14} ry={9} fill={BLUSH} />
+      <Ellipse opacity={0.75} cx={204} cy={272} rx={14} ry={9} fill={BLUSH} />
     </>
   );
 }
 
 const line = { stroke: INK, strokeWidth: 5.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
 
-function Eye({ cx, kind }: { cx: number; kind: 'open' | 'sparkle' | 'sleepy' | 'happy' | 'dizzy' }) {
-  const cy = 245.7;
+function Eye({ cx, cy, tilt, kind }: { cx: number; cy: number; tilt: number; kind: 'open' | 'sparkle' | 'sleepy' | 'happy' | 'dizzy' }) {
   if (kind === 'sleepy') return <Path d={`M${cx - 9} ${cy - 1} Q${cx} ${cy + 7} ${cx + 9} ${cy - 1}`} {...line} />;
   if (kind === 'happy') return <Path d={`M${cx - 9} ${cy + 4} Q${cx} ${cy - 8} ${cx + 9} ${cy + 4}`} {...line} />;
   if (kind === 'dizzy') {
@@ -391,24 +394,33 @@ function Eye({ cx, kind }: { cx: number; kind: 'open' | 'sparkle' | 'sleepy' | '
   }
   return (
     <>
-      <Ellipse cx={cx} cy={cy} rx={8.8} ry={12.8} fill={INK} />
+      <Ellipse cx={cx} cy={cy} rx={9} ry={11.5} transform={`rotate(${tilt} ${cx} ${cy})`} fill={INK} />
       {kind === 'sparkle' && <Circle cx={cx - 3} cy={cy - 5} r={3} fill="white" />}
     </>
   );
 }
 
-function Eyes({ face, expr }: { face: Face; expr: Expression }) {
+export function Eyes({ face, expr }: { face: Face; expr: Expression }) {
   const both =
     expr === 'joy' || face === 'full' ? 'happy' : face === 'thirsty' ? 'sleepy' : face === 'dizzy' ? 'dizzy' : face === 'celebrate' ? 'sparkle' : 'open';
   return (
     <>
-      <Eye cx={132.3} kind={both} />
-      <Eye cx={191.7} kind={expr === 'wink' ? 'happy' : both} />
+      <Eye cx={128} cy={236} tilt={-8} kind={both} />
+      <Eye cx={182} cy={246} tilt={6} kind={expr === 'wink' ? 'happy' : both} />
     </>
   );
 }
 
-function Mouth({ face, expr }: { face: Face; expr: Expression }) {
+export function Mouth({ face, expr }: { face: Face; expr: Expression }) {
+  if (face === 'happy' && expr !== 'joy') return <Path d="M132 278Q138 294 148 294Q160 293 170 284" {...line} strokeWidth={8} />;
+  return (
+    <G transform="translate(-11 8)">
+      <MouthShape face={face} expr={expr} />
+    </G>
+  );
+}
+
+function MouthShape({ face, expr }: { face: Face; expr: Expression }) {
   if (face === 'dizzy') return <Path d="M144 279 q4.5 -6 9 0 t9 0 t9 0 t9 0" {...line} strokeWidth={5} />;
   if (expr === 'joy' || face === 'celebrate') {
     return (
@@ -419,8 +431,7 @@ function Mouth({ face, expr }: { face: Face; expr: Expression }) {
     );
   }
   if (face === 'full') return <Path d="M148 275 q7 8 14 0 q7 8 14 0" {...line} />;
-  if (face === 'thirsty') return <Path d="M153 280 Q162 274 171 280" {...line} />;
-  return <Path d="M143.1 272.7C155.7 284.4 168.3 284.4 180.9 272.7" stroke={INK} strokeWidth={6.75} strokeLinecap="round" fill="none" />;
+  return <Path d="M153 280 Q162 274 171 280" {...line} />;
 }
 
 function Star({ x, y, size, color }: { x: number; y: number; size: number; color: string }) {

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Share, StyleSheet, TextInput, View } from 'react-native';
 
@@ -8,6 +7,7 @@ import { IconButton } from '@/components/IconButton';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import { backupText, formatMl, parseBackup } from '@/lib/hydration';
 import { STORE_VERSION, useJibna } from '@/store/useJibna';
 import { colors, fonts } from '@/theme/tokens';
@@ -42,13 +42,13 @@ export default function Backup() {
     setPending(null);
     setText('');
     showToast({ message: 'นำเข้าข้อมูลสำรองแล้ว' });
-    router.back();
+    goBack();
   };
   const incoming = pending && Array.isArray(pending.data.entries) ? pending.data.entries.length : 0;
 
   return (
     <Screen scroll style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <Text variant="heading">สำรองข้อมูล</Text>
       <Text variant="body" color="muted">ข้อมูลของจิบนะอยู่ในเครื่องนี้เท่านั้น ส่งออกเก็บไว้ก่อนเปลี่ยนเครื่องหรือลบแอป</Text>
 

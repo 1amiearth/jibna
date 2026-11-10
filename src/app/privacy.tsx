@@ -1,9 +1,9 @@
-import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { IconButton } from '@/components/IconButton';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 
 const SECTIONS: [string, string][] = [
   ['ข้อมูลที่เก็บ', 'ข้อมูลร่างกายที่คุณกรอก (เพศ น้ำหนัก กิจกรรม สภาพอากาศ เวลาตื่น–นอน) เป้าหมายต่อวัน รายการเครื่องดื่มที่บันทึก และการตั้งค่าการเตือน'],
@@ -17,7 +17,7 @@ const SECTIONS: [string, string][] = [
 export default function Privacy() {
   return (
     <Screen scroll style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <Text variant="heading">นโยบายความเป็นส่วนตัว</Text>
       {SECTIONS.map(([title, body]) => (
         <View key={title} style={s.section}>

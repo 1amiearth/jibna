@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { Pressable, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
@@ -7,6 +6,7 @@ import { Button } from '@/components/Button';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import { DROPS_PER_GOAL_DAY, formatMl, goalOn, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
@@ -47,7 +47,7 @@ export default function GoalReached() {
           ))}
         </View>
         <Button label="แชร์ความสำเร็จ" kind="Inverse" onPress={share} style={s.share} />
-        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button">
           <Text variant="button" color="bg" align="center">ปิด</Text>
         </Pressable>
       </Screen>

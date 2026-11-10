@@ -10,6 +10,7 @@ import { Mascot } from '@/components/Mascot';
 import { Row } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import { calcGoal, formatMl, GOAL_MAX, GOAL_MIN, GOAL_STEP, isValidGoal } from '@/lib/hydration';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -38,12 +39,12 @@ export default function EditGoal() {
   const save = () => {
     setGoal(value, value !== recommended);
     if (next === 'notifications') router.replace('/onboarding/notifications');
-    else router.back();
+    else goBack();
   };
 
   return (
     <Screen style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <Text variant="heading">เป้าหมายต่อวัน</Text>
       <Text variant="body" color="muted">ปรับเองได้ หรือใช้ค่าที่น้องจิบคำนวณให้</Text>
 

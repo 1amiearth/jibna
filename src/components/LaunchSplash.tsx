@@ -9,11 +9,11 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { ClipPath, Defs, G, Path, SvgXml } from 'react-native-svg';
+import Svg, { ClipPath, Defs, Ellipse, G, Path, SvgXml } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { artSvg } from '@/assets/svg';
 import { BODY, BODY_TIP_X, BODY_TOP, WATER_BACK, WATER_FRONT, waterY, wavePath } from '@/components/Mascot';
+import { Arm, Eyes, Legs, Mouth } from '@/components/PlayfulMascot';
 import { Text } from '@/components/Text';
 import { colors } from '@/theme/tokens';
 
@@ -94,7 +94,11 @@ export function LaunchSplash({ firstOpen, onShown, onDone }: Props) {
       accessible
       accessibilityLabel="จิบนะ กำลังเปิดแอป">
       <Animated.View style={[{ width: W, height: H }, mascotStyle]}>
-        <SvgXml xml={artSvg.hydrationBase} width={W} height={H} style={StyleSheet.absoluteFill} />
+        <Svg width={W} height={H} viewBox="0 0 324 405" style={StyleSheet.absoluteFill}>
+          <Ellipse cx={164} cy={386} rx={96} ry={8} fill="#EDE6D8" />
+          <Legs />
+          <Path d={BODY} fill="#EEF3F7" />
+        </Svg>
         <Animated.View style={[StyleSheet.absoluteFill, waterStyle]}>
           <Svg width={W} height={H} viewBox="0 0 324 405">
             <Defs>
@@ -108,7 +112,12 @@ export function LaunchSplash({ firstOpen, onShown, onDone }: Props) {
             </G>
           </Svg>
         </Animated.View>
-        <SvgXml xml={artSvg.hydrationFace} width={W} height={H} style={StyleSheet.absoluteFill} />
+        <Svg width={W} height={H} viewBox="0 0 324 405" style={StyleSheet.absoluteFill}>
+          <Eyes face="happy" expr={null} />
+          <Mouth face="happy" expr={null} />
+          <Arm side="left" />
+          <Arm side="right" />
+        </Svg>
         {t.drop > 0 && !reduceMotion && (
           <Animated.View style={[s.drop, dropStyle]} pointerEvents="none">
             <SvgXml xml={DROP} width={28} height={36} />

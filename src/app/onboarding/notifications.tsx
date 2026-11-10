@@ -1,21 +1,32 @@
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { Button } from '@/components/Button';
-import { Mascot } from '@/components/Mascot';
 import { NotificationPreview } from '@/components/NotificationPreview';
+import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { formatMl } from '@/lib/hydration';
 import { requestPermission } from '@/lib/notifications';
 import { useJibna } from '@/store/useJibna';
 
+// The sample reminder drops in a beat after the screen opens, like a real banner.
+const BANNER_DELAY = 700;
+
 /** Pre-permission screen shown before the iOS dialog (Figma 16). */
 export default function NotificationsPermission() {
   const complete = useJibna((s) => s.completeOnboarding);
   const goal = useJibna((s) => s.goal);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const t = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}), BANNER_DELAY);
+    return () => clearTimeout(t);
+  }, []);
 
   const finish = (enabled: boolean) => {
     complete(enabled);
@@ -36,9 +47,12 @@ export default function NotificationsPermission() {
           น้องจิบจะสะกิดเบา ๆ เฉพาะช่วงที่คุณตื่น และเงียบทันทีเมื่อดื่มครบเป้า
         </Text>
       </View>
-      <Mascot pose="Thirsty" width={170} />
+      {/* Nearly empty → thirsty face and sweat drop; still breathes, blinks and plays when tapped. */}
+      <PlayfulMascot percent={15} width={170} label="น้องจิบ คอแห้ง" />
       <View style={s.preview}>
-        <NotificationPreview remaining={formatMl(goal)} />
+        <Animated.View entering={FadeInUp.delay(BANNER_DELAY).springify().damping(14)}>
+          <NotificationPreview remaining={formatMl(goal)} />
+        </Animated.View>
         <Text variant="caption" color="muted" align="center">หลังแตะปุ่ม iOS จะถามสิทธิ์อีกครั้ง — กด “อนุญาต”</Text>
       </View>
       <View style={s.actions}>

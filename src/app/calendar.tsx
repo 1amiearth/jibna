@@ -7,6 +7,7 @@ import { IconButton } from '@/components/IconButton';
 import { Mascot } from '@/components/Mascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import { dayKey, dayTotals, formatMl, fromKey, goalOn, loggedDays, monthGrid, TH_MONTHS, thaiYear, waterDrops } from '@/lib/hydration';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
@@ -73,7 +74,7 @@ export default function Calendar() {
 
   return (
     <Screen scroll style={s.content}>
-      <TopBar right={<IconButton type="close" onPress={() => router.back()} />} />
+      <TopBar right={<IconButton type="close" onPress={goBack} />} />
       <View style={s.ring}>
         <Ring percent={today.percent} />
         <View style={s.ringText}>

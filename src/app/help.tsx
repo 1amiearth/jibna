@@ -1,9 +1,9 @@
-import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { IconButton } from '@/components/IconButton';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { goBack } from '@/lib/goBack';
 import {
   ACTIVITY_ML,
   DROPS_PER_GOAL_DAY,
@@ -42,7 +42,7 @@ const FAQ: [string, string][] = [
 export default function Help() {
   return (
     <Screen scroll style={s.content}>
-      <TopBar left={<IconButton type="back" onPress={() => router.back()} />} />
+      <TopBar left={<IconButton type="back" onPress={goBack} />} />
       <Text variant="heading">ช่วยเหลือ</Text>
       {FAQ.map(([q, a]) => (
         <View key={q} style={s.section}>

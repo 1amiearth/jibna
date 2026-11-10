@@ -6,6 +6,7 @@ import {
   calcGoal,
   DRINKS,
   DRINK_TYPES,
+  cupLayers,
   dayKey,
   entriesOn,
   dayTotals,
@@ -405,4 +406,14 @@ test('undo: an add is removed, a delete comes back once', () => {
   const restored = applyUndo([a], { kind: 'delete', entry: b });
   assert.deepEqual(restored, [a, b]);
   assert.equal(applyUndo(restored, { kind: 'delete', entry: b }), restored); // double tap: no duplicate
+});
+
+test('cup layers: drinking order, same drink merged, liquor skipped, over-goal fills exactly', () => {
+  const e = (h: number, type: Entry['type'], ml: number): Entry => ({ id: `${type}${h}`, type, ml, at: at(24, h) });
+  const color = (t: Entry['type']) => t;
+  const day = [e(9, 'Coffee', 200), e(7, 'Water', 500), e(8, 'Water', 500), e(10, 'Liquor', 30)];
+  assert.deepEqual(cupLayers(day, 2000, color).map((l) => [l.c, l.f]), [['Water', 0.5], ['Coffee', 0.08]]);
+  const over = cupLayers([e(7, 'Water', 2000), e(8, 'GreenTea', 2000)], 2000, color);
+  assert.equal(over.reduce((s, l) => s + l.f, 0), 1);
+  assert.equal(cupLayers(Array.from({ length: 20 }, (_, i) => e(i, i % 2 ? 'Water' : 'Milk', 100)), 2000, color).length, 8);
 });

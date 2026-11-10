@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
@@ -12,6 +12,7 @@ import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
 import { isFuture, WhenPicker } from '@/components/WhenPicker';
+import { goBack } from '@/lib/goBack';
 import {
   addedText,
   BACKDATE_DAYS,
@@ -103,7 +104,7 @@ export default function DayLog() {
 
   return (
     <Screen style={s.content}>
-      <TopBar right={<IconButton type="close" onPress={() => router.back()} />} />
+      <TopBar right={<IconButton type="close" onPress={goBack} />} />
       <View style={s.head}>
         <Text variant="heading" align="center">{formatDayTitle(key)}</Text>
         <Text variant="caption" color="water" align="center">

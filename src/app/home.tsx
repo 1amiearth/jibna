@@ -11,7 +11,9 @@ import { Mascot } from '@/components/Mascot';
 import { PlayfulMascot } from '@/components/PlayfulMascot';
 import { Screen, TopBar } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { challengeProgress, formatMl, fromKey, homeDrinks, hydrationOf, TH_DAYS } from '@/lib/hydration';
+import { VESSELS } from '@/components/Vessel';
+import { challengeProgress, cupLayers, entriesOn, formatMl, fromKey, homeDrinks, hydrationOf, TH_DAYS } from '@/lib/hydration';
+import { useHydrationActivity } from '@/lib/useHydrationActivity';
 import { useToday } from '@/lib/useToday';
 import { useJibna } from '@/store/useJibna';
 import { colors } from '@/theme/tokens';
@@ -34,6 +36,7 @@ export default function Home() {
   // Bigger Dynamic Type takes vertical room from the mascot so nothing overlaps.
   const mascotWidth = Math.min(300, width - 90) / Math.min(Math.max(fontScale, 1), 1.35) ** 1.5;
   const today = useToday();
+  useHydrationActivity();
   const entries = useJibna((s) => s.entries);
   const savedOrder = useJibna((s) => s.drinkOrder);
   const hiddenDrinks = useJibna((s) => s.hiddenDrinks);
@@ -91,7 +94,7 @@ export default function Home() {
             <SvgXml xml={artSvg.confetti} width={width} height={(width * 520) / 390} style={s.confetti} />
           </View>
         )}
-        <PlayfulMascot percent={today.percent} width={mascotWidth} reaction={reaction} />
+        <PlayfulMascot percent={today.percent} width={mascotWidth} reaction={reaction} layers={cupLayers(entriesOn(entries, today.key), today.goal, (t) => VESSELS[t].liquid)} />
       </View>
 
       <View>
