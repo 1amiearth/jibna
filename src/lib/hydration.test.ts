@@ -31,6 +31,9 @@ import {
   caffeineOf,
   thaiYear,
   backupText,
+  entriesInRange,
+  exportDays,
+  formatDayShort,
   parseBackup,
   compactEntries,
   drinkOrder,
@@ -344,6 +347,21 @@ test('backup round-trips and rejects anything that is not a valid Jibna backup',
   assert.ok('error' in parseBackup(backupText({ ...data, entries: [{ id: 'x', type: 'Vodka', ml: 30, at: 1 }] }, 3, 0)));
   assert.ok('error' in parseBackup(backupText({ ...data, goal: 99999 }, 3, 0)));
   assert.ok('error' in parseBackup(backupText(data, -1, 0)));
+});
+
+test('export range: inclusive day filter and day list from first entry to today', () => {
+  const es = [
+    { id: 'a', type: 'Water', ml: 200, at: at(20, 23) },
+    { id: 'b', type: 'Water', ml: 200, at: at(22, 8) },
+    { id: 'c', type: 'Water', ml: 200, at: at(24, 0) },
+  ] as Entry[];
+  const key = (d: number) => dayKey(at(d, 12));
+  assert.deepEqual(entriesInRange(es, key(20), key(22)).map((e) => e.id), ['a', 'b']);
+  assert.deepEqual(entriesInRange(es, key(23), key(23)), []);
+  const days = exportDays(es, at(25, 9));
+  assert.deepEqual([days[0], days.at(-1), days.length], [key(20), key(25), 6]);
+  assert.deepEqual(exportDays([], at(25, 9)), [key(25)]);
+  assert.match(formatDayShort('2026-10-24'), /^24 ต\.ค\. 69$/);
 });
 
 test('Buddhist-era year', () => {
