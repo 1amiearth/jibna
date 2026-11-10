@@ -216,8 +216,31 @@ export function compactEntries(entries: Entry[], now: number, keepDays = DETAIL_
 const BACKUP_APP = 'jibna';
 
 /** Backup file: the persisted store plus its version, as JSON text (shared via the share sheet). */
-export function backupText(data: object, version: number, now: number): string {
-  return JSON.stringify({ app: BACKUP_APP, version, exportedAt: new Date(now).toISOString(), data });
+export function backupText(data: object, version: number, now: number, range?: { from: string; to: string }): string {
+  return JSON.stringify({ app: BACKUP_APP, version, exportedAt: new Date(now).toISOString(), ...(range && { range }), data });
+}
+
+/** Entries whose local day falls in [from, to] ('YYYY-MM-DD', inclusive; keys compare as strings). */
+export function entriesInRange(entries: readonly Entry[], from: string, to: string): Entry[] {
+  return entries.filter((e) => {
+    const k = dayKey(e.at);
+    return k >= from && k <= to;
+  });
+}
+
+/** Every day key from the first logged day through today, oldest first (just today when empty). */
+export function exportDays(entries: readonly Entry[], now: number): string[] {
+  const today = dayKey(now);
+  const first = entries.reduce((m, e) => Math.min(m, e.at), now);
+  const days: string[] = [];
+  for (const d = fromKey(dayKey(first)); dayKey(d) <= today; d.setDate(d.getDate() + 1)) days.push(dayKey(d));
+  return days;
+}
+
+/** e.g. '24 ต.ค. 69' */
+export function formatDayShort(key: string): string {
+  const d = fromKey(key);
+  return `${d.getDate()} ${TH_MONTHS_SHORT[d.getMonth()]} ${String(thaiYear(d.getFullYear())).slice(-2)}`;
 }
 
 function validEntry(e: unknown): e is Entry {

@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Share, StyleSheet, TextInput, View } from 'react-native';
 
 import { ErrorNote } from '@/components/AmountSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
+import { Row } from '@/components/Row';
 import { Screen, TopBar } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
+import { Wheel } from '@/components/Wheel';
 import { goBack } from '@/lib/goBack';
-import { backupText, formatMl, parseBackup } from '@/lib/hydration';
+import { backupText, dayKey, entriesInRange, exportDays, formatDayShort, formatMl, fromKey, parseBackup } from '@/lib/hydration';
+import { useNow } from '@/lib/useNow';
 import { STORE_VERSION, useJibna } from '@/store/useJibna';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -18,7 +21,8 @@ import { colors, fonts } from '@/theme/tokens';
  * takes that text pasted back and replaces what's here after a confirm.
  */
 export default function Backup() {
-  const count = useJibna((s) => s.entries.length);
+  const entries = useJibna((s) => s.entries);
+  const count = entries.length;
   const backupData = useJibna((s) => s.backupData);
   const restore = useJibna((s) => s.restoreBackup);
   const showToast = useJibna((s) => s.showToast);
@@ -26,8 +30,28 @@ export default function Backup() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<{ version: number; data: Record<string, unknown> } | null>(null);
 
+  // Export range: whole days, first logged day → today by default (= everything).
+  const today = dayKey(useNow());
+  const days = useMemo(() => exportDays(entries, fromKey(today).getTime()), [entries, today]);
+  const [range, setRange] = useState<{ from: string; to: string } | null>(null);
+  const from = range?.from ?? days[0];
+  const to = range?.to ?? days[days.length - 1];
+  const isAll = from <= days[0] && to >= days[days.length - 1];
+  const picked = useMemo(() => entriesInRange(entries, from, to), [entries, from, to]);
+  const [editing, setEditing] = useState<{ end: 'from' | 'to'; key: string } | null>(null);
+  const applyEdit = () => {
+    if (!editing) return;
+    // Keep from ≤ to: moving one end past the other drags the other along.
+    const k = editing.key;
+    setRange(editing.end === 'from' ? { from: k, to: to < k ? k : to } : { from: from > k ? k : from, to: k });
+    setEditing(null);
+  };
+
   const exportNow = () =>
-    Share.share({ title: 'ข้อมูลสำรองจิบนะ', message: backupText(backupData(), STORE_VERSION, Date.now()) }).catch(() => {});
+    Share.share({
+      title: 'ข้อมูลสำรองจิบนะ',
+      message: backupText({ ...backupData(), entries: picked }, STORE_VERSION, Date.now(), isAll ? undefined : { from, to }),
+    }).catch(() => {});
 
   const check = () => {
     const parsed = parseBackup(text);
@@ -54,7 +78,12 @@ export default function Backup() {
 
       <View style={s.card}>
         <Text variant="title">ส่งออก</Text>
-        <Text variant="caption" color="muted">{`${formatMl(count)} รายการ พร้อมเป้าหมาย ข้อมูลร่างกาย และการตั้งค่า · บันทึกเป็นข้อความในแอปไฟล์ โน้ต หรือส่งหาตัวเองทาง LINE`}</Text>
+        <View>
+          <Row label="ตั้งแต่วันที่" value={formatDayShort(from)} onPress={() => setEditing({ end: 'from', key: from })} />
+          <Row label="ถึงวันที่" value={formatDayShort(to)} onPress={() => setEditing({ end: 'to', key: to })} divider={false} />
+        </View>
+        <Text variant="caption" color="muted">{`${formatMl(picked.length)} รายการ พร้อมเป้าหมาย ข้อมูลร่างกาย และการตั้งค่า · บันทึกเป็นข้อความในแอปไฟล์ โน้ต หรือส่งหาตัวเองทาง LINE`}</Text>
+        {!isAll && <Text variant="caption" color="muted">ส่งออกเฉพาะช่วงที่เลือก ถ้านำเข้าภายหลัง ข้อมูลนอกช่วงนี้ในเครื่องจะหายไป</Text>}
         <Button label="ส่งออกข้อมูลสำรอง" onPress={exportNow} style={s.full} />
       </View>
 
@@ -78,6 +107,22 @@ export default function Backup() {
         {error && <ErrorNote>{error}</ErrorNote>}
         <Button label="ตรวจและนำเข้า" kind="Soft" disabled={!text.trim()} onPress={check} style={s.full} />
       </View>
+
+      <Sheet
+        visible={!!editing}
+        title={editing?.end === 'from' ? 'ตั้งแต่วันที่' : 'ถึงวันที่'}
+        onCancel={() => setEditing(null)}
+        onDone={applyEdit}>
+        {editing && (
+          <Wheel
+            label="วันที่"
+            values={days.map(formatDayShort)}
+            index={days.indexOf(editing.key)}
+            onChange={(i) => setEditing({ ...editing, key: days[i] })}
+            width={200}
+          />
+        )}
+      </Sheet>
 
       <Sheet visible={!!pending} title="แทนที่ข้อมูลทั้งหมด?" onCancel={() => setPending(null)}>
         <Text variant="body" color="muted" align="center">
